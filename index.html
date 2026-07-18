@@ -179,7 +179,7 @@ async function loadEvents() {
     return;
   }
   try {
-    const fields = ["Titel","Beginn","Ende","Kategorie","Beschreibung","Ort/Venue","Adresse","Ticket URL","Bild URL","Eintritt","Empfehlung","Source URL"];
+    const fields = ["Titel","Beginn","Ende","Kategorie","Beschreibung","Ort/Venue","Adresse","Ticket URL","Bild","Bild URL","Eintritt","Empfehlung","Source URL"];
     const formula = "AND({Status}='Approved', IS_AFTER({Beginn}, DATEADD(TODAY(), -1, 'days')))";
     let url = "https://api.airtable.com/v0/" + CONFIG.BASE_ID + "/" + encodeURIComponent(CONFIG.TABLE)
       + "?filterByFormula=" + encodeURIComponent(formula)
@@ -204,7 +204,7 @@ async function loadEvents() {
       ort: r.fields["Ort/Venue"] || "",
       adresse: r.fields["Adresse"] || "",
       ticket: r.fields["Ticket URL"] || "",
-      bild: r.fields["Bild URL"] || "",
+      bild: (r.fields["Bild"] && r.fields["Bild"][0] && ((r.fields["Bild"][0].thumbnails && r.fields["Bild"][0].thumbnails.large && r.fields["Bild"][0].thumbnails.large.url) || r.fields["Bild"][0].url)) || r.fields["Bild URL"] || "",
       eintritt: r.fields["Eintritt"] || "",
       empfehlung: r.fields["Empfehlung"] || "",
       source: r.fields["Source URL"] || ""
