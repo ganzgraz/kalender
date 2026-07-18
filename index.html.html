@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ganzgraz Eventkalender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700&family=Montserrat:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gg-purple: #4e2996;
+    --gg-flieder: #cdb9ee;
+    --gg-pastellorange: #f8c99d;
+    --gg-orange: #ff8900;
+    --gg-text: #2b2b2b;
+    --gg-muted: #6f6f6f;
+    --gg-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--gg-text);
+    background: var(--gg-bg);
+    padding: 8px 4px 32px;
+  }
+  .gg-wrap { max-width: 860px; margin: 0 auto; }
+
+  /* ---------- Filterleiste ---------- */
+  .gg-filters {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    margin-bottom: 10px;
+  }
+  .gg-tab {
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 14px; letter-spacing: .02em;
+    padding: 8px 14px 6px; border-radius: 999px;
+    border: 2px solid var(--gg-purple); background: #fff; color: var(--gg-purple);
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .gg-tab:hover { background: var(--gg-flieder); }
+  .gg-tab.active { background: var(--gg-purple); color: #fff; }
+  .gg-tab.tipp-toggle { border-color: var(--gg-orange); color: var(--gg-orange); }
+  .gg-tab.tipp-toggle:hover { background: var(--gg-pastellorange); }
+  .gg-tab.tipp-toggle.active { background: var(--gg-orange); color: #fff; }
+  .gg-select {
+    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 8px 10px; border-radius: 999px; border: 2px solid var(--gg-flieder);
+    color: var(--gg-purple); background: #fff; cursor: pointer;
+  }
+  .gg-select:focus { outline: 2px solid var(--gg-purple); }
+
+  /* ---------- Tagesgruppen ---------- */
+  .gg-day {
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 20px; color: var(--gg-purple);
+    margin: 26px 0 10px; padding-bottom: 6px;
+    border-bottom: 3px solid var(--gg-flieder);
+    text-transform: uppercase; letter-spacing: .02em;
+  }
+
+  /* ---------- Eventkarten ---------- */
+  .gg-card {
+    display: flex; gap: 14px;
+    border: 1px solid #e8e2f5; border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 10px; background: #fff;
+    transition: box-shadow .15s;
+  }
+  .gg-card:hover { box-shadow: 0 3px 14px rgba(78,41,150,.12); }
+  .gg-card.tipp { border: 2px solid var(--gg-orange); background: #fff8f0; }
+  .gg-card.highlight { border: 2px solid var(--gg-orange); background: linear-gradient(135deg,#fff8f0 0%, #fdeede 100%); }
+  .gg-time {
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 15px; color: var(--gg-purple);
+    min-width: 52px; padding-top: 3px;
+  }
+  .gg-body { flex: 1; min-width: 0; }
+  .gg-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .gg-title {
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 17px; line-height: 1.25; color: var(--gg-text);
+  }
+  .gg-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 11px;
+    letter-spacing: .04em; text-transform: uppercase;
+    background: var(--gg-orange); color: #fff;
+    padding: 4px 9px 3px; border-radius: 999px; white-space: nowrap;
+  }
+  .gg-badge svg { width: 14px; height: 14px; }
+  .gg-cat {
+    font-size: 11px; font-weight: 600; letter-spacing: .03em;
+    background: var(--gg-flieder); color: var(--gg-purple);
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .gg-meta { font-size: 13px; color: var(--gg-muted); margin-top: 4px; }
+  .gg-meta strong { color: var(--gg-text); font-weight: 600; }
+  .gg-desc { font-size: 13.5px; line-height: 1.5; margin-top: 7px; }
+  .gg-desc.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .gg-more {
+    font-size: 12.5px; font-weight: 600; color: var(--gg-purple);
+    background: none; border: none; cursor: pointer; padding: 2px 0; margin-top: 2px;
+  }
+  .gg-links { margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .gg-links a {
+    font-size: 13px; font-weight: 600; color: var(--gg-purple); text-decoration: none;
+    border-bottom: 2px solid var(--gg-pastellorange);
+  }
+  .gg-links a:hover { color: var(--gg-orange); }
+  .gg-img {
+    width: 92px; height: 92px; object-fit: cover; border-radius: 10px; flex-shrink: 0;
+  }
+  .gg-empty {
+    text-align: center; color: var(--gg-muted); font-size: 14px;
+    padding: 40px 10px;
+  }
+  .gg-error { text-align: center; color: #b00020; font-size: 13px; padding: 30px 10px; }
+  .gg-footer {
+    margin-top: 28px; text-align: center; font-size: 11.5px; color: var(--gg-muted);
+  }
+  .gg-footer .goose { color: var(--gg-purple); font-family: 'League Spartan', sans-serif; font-weight: 700; }
+  .gg-demo-note {
+    background: var(--gg-flieder); color: var(--gg-purple);
+    border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 500;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 560px) {
+    .gg-img { display: none; }
+    .gg-time { min-width: 44px; font-size: 14px; }
+    .gg-title { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="gg-wrap">
+  <div class="gg-filters" id="filters">
+    <button class="gg-tab active" data-range="heute">Heute</button>
+    <button class="gg-tab" data-range="morgen">Morgen</button>
+    <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
+    <button class="gg-tab" data-range="30">Nächste 30 Tage</button>
+    <button class="gg-tab" data-range="alle">Alle</button>
+    <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">unsere Tipps</button>
+    <select class="gg-select" id="catSelect">
+      <option value="">Alle Kategorien</option>
+    </select>
+  </div>
+  <div id="content"><div class="gg-empty">Events werden geladen …</div></div>
+  <div class="gg-footer"><span class="goose">ganz</span><span class="goose" style="font-size:13px">graz</span> Eventkalender · Ein Event einreichen? <a href="mailto:event@ganzgraz.at" style="color:var(--gg-purple)">event@ganzgraz.at</a></div>
+</div>
+
+<script>
+/* ================= KONFIGURATION =================
+   1) In Airtable einen Personal Access Token erstellen:
+      https://airtable.com/create/tokens
+      - Scope: NUR data.records:read
+      - Zugriff: NUR Base "Ganz Graz Eventkalender"
+   2) Token unten einsetzen und Datei hochladen.
+   Solange kein Token gesetzt ist, zeigt das Widget Demo-Events an.
+=================================================== */
+const CONFIG = {
+  AIRTABLE_TOKEN: "patAQrnw6JT5LHpk6.9217c8014d0546f9bad2a0b23e0076830e20bbd827046e9211e630f0aa7d4960",
+  BASE_ID: "app48es7lwPQdEYYH",
+  TABLE: "Veranstaltungen",
+  TIMEZONE: "Europe/Vienna"
+};
+
+const GOOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21c4.5 0 7.5-2.5 7.5-6.5V9.2c0-.5.2-.9.6-1.2l1.6-1.2c.4-.3.3-.9-.2-1l-2.1-.5C15.9 3.9 14.7 3 13.4 3 11.8 3 10.5 4.3 10.5 6v5.5c0 2.5-1.5 4-4 4H5c0 3 1.5 5.5 4 5.5z"/><circle cx="14" cy="6" r="0.4" fill="currentColor"/></svg>';
+
+let allEvents = [];
+let state = { range: "heute", cat: "", tippOnly: false };
+
+/* ---------- Daten laden ---------- */
+async function loadEvents() {
+  if (!CONFIG.AIRTABLE_TOKEN || CONFIG.AIRTABLE_TOKEN === "HIER_TOKEN_EINSETZEN") {
+    document.getElementById("content").insertAdjacentHTML("beforebegin",
+      '<div class="gg-demo-note">Demo-Modus: Es werden Beispiel-Events angezeigt. Airtable-Token in der Datei einsetzen, um echte Events zu laden.</div>');
+    allEvents = demoEvents();
+    render();
+    return;
+  }
+  try {
+    const fields = ["Titel","Beginn","Ende","Kategorie","Beschreibung","Ort/Venue","Adresse","Ticket URL","Bild URL","Eintritt","Empfehlung","Source URL"];
+    const formula = "AND({Status}='Approved', IS_AFTER({Beginn}, DATEADD(TODAY(), -1, 'days')))";
+    let url = "https://api.airtable.com/v0/" + CONFIG.BASE_ID + "/" + encodeURIComponent(CONFIG.TABLE)
+      + "?filterByFormula=" + encodeURIComponent(formula)
+      + "&sort%5B0%5D%5Bfield%5D=Beginn&sort%5B0%5D%5Bdirection%5D=asc&pageSize=100"
+      + fields.map(f => "&fields%5B%5D=" + encodeURIComponent(f)).join("");
+    let records = [], offset = null;
+    do {
+      const res = await fetch(url + (offset ? "&offset=" + offset : ""), {
+        headers: { Authorization: "Bearer " + CONFIG.AIRTABLE_TOKEN }
+      });
+      if (!res.ok) throw new Error("Airtable " + res.status);
+      const data = await res.json();
+      records = records.concat(data.records);
+      offset = data.offset;
+    } while (offset);
+    allEvents = records.map(r => ({
+      titel: r.fields["Titel"] || "Ohne Titel",
+      beginn: r.fields["Beginn"] ? new Date(r.fields["Beginn"]) : null,
+      ende: r.fields["Ende"] ? new Date(r.fields["Ende"]) : null,
+      kategorie: r.fields["Kategorie"] || "",
+      beschreibung: r.fields["Beschreibung"] || "",
+      ort: r.fields["Ort/Venue"] || "",
+      adresse: r.fields["Adresse"] || "",
+      ticket: r.fields["Ticket URL"] || "",
+      bild: r.fields["Bild URL"] || "",
+      eintritt: r.fields["Eintritt"] || "",
+      empfehlung: r.fields["Empfehlung"] || "",
+      source: r.fields["Source URL"] || ""
+    })).filter(e => e.beginn);
+    render();
+  } catch (err) {
+    document.getElementById("content").innerHTML =
+      '<div class="gg-error">Der Kalender konnte gerade nicht geladen werden. Bitte später noch einmal versuchen.</div>';
+    console.error(err);
+  }
+}
+
+/* ---------- Hilfsfunktionen (Zeitzone Wien) ---------- */
+function viennaDateKey(d) {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: CONFIG.TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+function todayKey(offsetDays) {
+  const now = new Date();
+  now.setDate(now.getDate() + (offsetDays || 0));
+  return viennaDateKey(now);
+}
+function fmtDayHeading(d) {
+  return new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, weekday: "long", day: "numeric", month: "long" }).format(d);
+}
+function fmtTime(d) {
+  return new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, hour: "2-digit", minute: "2-digit" }).format(d);
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ---------- Filtern & Rendern ---------- */
+function filtered() {
+  const t0 = todayKey(0), t1 = todayKey(1), t7 = todayKey(7), t30 = todayKey(30);
+  return allEvents.filter(e => {
+    const k = viennaDateKey(e.beginn);
+    if (state.range === "heute" && k !== t0) return false;
+    if (state.range === "morgen" && k !== t1) return false;
+    if (state.range === "7" && (k < t0 || k > t7)) return false;
+    if (state.range === "30" && (k < t0 || k > t30)) return false;
+    if (state.range === "alle" && k < t0) return false;
+    if (state.cat && e.kategorie !== state.cat) return false;
+    if (state.tippOnly && !e.empfehlung) return false;
+    return true;
+  });
+}
+
+function render() {
+  // Kategorien-Dropdown befüllen
+  const cats = [...new Set(allEvents.map(e => e.kategorie).filter(Boolean))].sort();
+  const sel = document.getElementById("catSelect");
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Alle Kategorien</option>' + cats.map(c => '<option' + (c === current ? ' selected' : '') + '>' + esc(c) + "</option>").join("");
+
+  const evs = filtered();
+  const box = document.getElementById("content");
+  if (!evs.length) {
+    box.innerHTML = '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
+    return;
+  }
+  // Nach Tag gruppieren
+  const groups = {};
+  evs.forEach(e => { const k = viennaDateKey(e.beginn); (groups[k] = groups[k] || []).push(e); });
+  let html = "";
+  Object.keys(groups).sort().forEach(k => {
+    const list = groups[k];
+    // Wochenhighlight/Tipp zuerst
+    list.sort((a, b) => (b.empfehlung === "Wochenhighlight") - (a.empfehlung === "Wochenhighlight") || a.beginn - b.beginn);
+    html += '<div class="gg-day">' + fmtDayHeading(list[0].beginn) + "</div>";
+    list.forEach((e, i) => { html += card(e, k + "-" + i); });
+  });
+  box.innerHTML = html;
+}
+
+function card(e, id) {
+  const cls = e.empfehlung === "Wochenhighlight" ? "gg-card highlight" : e.empfehlung ? "gg-card tipp" : "gg-card";
+  const badge = e.empfehlung === "Wochenhighlight"
+    ? '<span class="gg-badge">' + GOOSE_SVG + "Wochenhighlight</span>"
+    : e.empfehlung ? '<span class="gg-badge">' + GOOSE_SVG + "ganzgraz-Tipp</span>" : "";
+  const meta = [];
+  if (e.ort) meta.push("<strong>" + esc(e.ort) + "</strong>" + (e.adresse ? " · " + esc(e.adresse) : ""));
+  if (e.eintritt) meta.push("Eintritt: " + esc(e.eintritt));
+  if (e.ende) meta.push("bis " + fmtTime(e.ende));
+  const desc = e.beschreibung ? '<div class="gg-desc clamp" id="d-' + id + '">' + esc(e.beschreibung) + '</div>' +
+    (e.beschreibung.length > 140 ? '<button class="gg-more" onclick="toggleDesc(\'' + id + '\', this)">mehr anzeigen</button>' : "") : "";
+  const links = [];
+  if (e.ticket) links.push('<a href="' + esc(e.ticket) + '" target="_blank" rel="noopener">Tickets</a>');
+  if (e.source) links.push('<a href="' + esc(e.source) + '" target="_blank" rel="noopener">Mehr Infos</a>');
+  return '<div class="' + cls + '">' +
+    '<div class="gg-time">' + fmtTime(e.beginn) + "</div>" +
+    '<div class="gg-body">' +
+      '<div class="gg-title-row"><span class="gg-title">' + esc(e.titel) + "</span>" + badge +
+        (e.kategorie ? '<span class="gg-cat">' + esc(e.kategorie) + "</span>" : "") + "</div>" +
+      (meta.length ? '<div class="gg-meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>" : "") +
+      desc +
+      (links.length ? '<div class="gg-links">' + links.join("") + "</div>" : "") +
+    "</div>" +
+    (e.bild ? '<img class="gg-img" src="' + esc(e.bild) + '" alt="" loading="lazy" onerror="this.remove()">' : "") +
+  "</div>";
+}
+
+function toggleDesc(id, btn) {
+  const el = document.getElementById("d-" + id);
+  const open = el.classList.toggle("clamp");
+  btn.textContent = open ? "mehr anzeigen" : "weniger anzeigen";
+}
+
+/* ---------- Events der Filterleiste ---------- */
+document.querySelectorAll(".gg-tab[data-range]").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".gg-tab[data-range]").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  state.range = b.dataset.range;
+  render();
+}));
+document.getElementById("tippToggle").addEventListener("click", function () {
+  state.tippOnly = !state.tippOnly;
+  this.classList.toggle("active", state.tippOnly);
+  render();
+});
+document.getElementById("catSelect").addEventListener("change", function () {
+  state.cat = this.value;
+  render();
+});
+
+/* ---------- Demo-Daten (nur ohne Token) ---------- */
+function demoEvents() {
+  const d = days => { const x = new Date(); x.setDate(x.getDate() + days); return x; };
+  const at = (base, h, m) => { const x = new Date(base); x.setHours(h, m || 0, 0, 0); return x; };
+  return [
+    { titel: "Jazz im Park", beginn: at(d(0), 19, 30), ende: at(d(0), 22, 0), kategorie: "Musik", beschreibung: "Open-Air-Konzert im Stadtpark mit lokalen Jazzgrößen. Decke mitbringen, Getränke gibt's vor Ort. Bei Schlechtwetter wird ins Forum Stadtpark ausgewichen.", ort: "Stadtpark", adresse: "8010 Graz", ticket: "", bild: "", eintritt: "frei", empfehlung: "Tagestipp", source: "" },
+    { titel: "Lesung: Neue Grazer Literatur", beginn: at(d(0), 20, 0), ende: null, kategorie: "Literatur", beschreibung: "Drei junge Autor:innen lesen aus ihren Debüts.", ort: "Literaturhaus Graz", adresse: "Elisabethstraße 30", ticket: "https://example.com", bild: "", eintritt: "EUR 8", empfehlung: "", source: "" },
+    { titel: "Flohmarkt am Kaiser-Josef-Platz", beginn: at(d(1), 8, 0), ende: at(d(1), 13, 0), kategorie: "Sonstiges", beschreibung: "Der Klassiker: stöbern, feilschen, finden.", ort: "Kaiser-Josef-Platz", adresse: "", ticket: "", bild: "", eintritt: "frei", empfehlung: "", source: "" },
+    { titel: "Elevate Festival: Eröffnung", beginn: at(d(2), 18, 0), ende: null, kategorie: "Festival", beschreibung: "Musik, Kunst und politischer Diskurs — das Elevate eröffnet im Dom im Berg. Das ganze Programm auf elevate.at. Unser Highlight der Woche: allein das Eröffnungskonzert lohnt den Besuch, danach Diskussionsrunden und Club-Programm bis in die Früh.", ort: "Dom im Berg", adresse: "Schloßbergplatz", ticket: "https://example.com", bild: "", eintritt: "VVK 22 / AK 25", empfehlung: "Wochenhighlight", source: "https://elevate.at" },
+    { titel: "Kabarett: Grazer Pointen", beginn: at(d(2), 19, 30), ende: null, kategorie: "Kabarett", beschreibung: "Lokalkolorit trifft Satire.", ort: "Theatercafé", adresse: "", ticket: "", bild: "", eintritt: "EUR 18", empfehlung: "", source: "" },
+    { titel: "Kinderworkshop: Museum zum Angreifen", beginn: at(d(5), 10, 0), ende: at(d(5), 12, 0), kategorie: "Familie", beschreibung: "Für Kinder von 6–10 Jahren, Anmeldung erforderlich.", ort: "Joanneumsviertel", adresse: "", ticket: "", bild: "", eintritt: "EUR 5", empfehlung: "Tagestipp", source: "" },
+    { titel: "Diskussion: Wohin wächst Graz?", beginn: at(d(12), 19, 0), ende: null, kategorie: "Diskussion", beschreibung: "Stadtplanung, Leistbarkeit, Verkehr — Podiumsdiskussion mit Publikumsfragen.", ort: "Forum Stadtpark", adresse: "", ticket: "", bild: "", eintritt: "frei", empfehlung: "", source: "" }
+  ];
+}
+
+loadEvents();
+</script>
+</body>
+</html>
