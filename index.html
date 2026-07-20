@@ -93,6 +93,24 @@
     background: var(--gg-flieder); color: var(--gg-purple);
     padding: 3px 9px; border-radius: 999px; white-space: nowrap;
   }
+  .gg-autor {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px; padding: 6px 10px 6px 6px;
+    background: #fff4e8; border-radius: 999px; width: fit-content; max-width: 100%;
+  }
+  .gg-autor img, .gg-autor .gg-initial {
+    width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    border: 2px solid var(--gg-orange); background: var(--gg-pastellorange);
+  }
+  .gg-autor .gg-initial {
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 14px;
+    color: var(--gg-purple);
+  }
+  .gg-autor span { font-size: 13px; color: var(--gg-text); }
+  .gg-autor strong { font-weight: 600; }
+  .gg-autor a { color: var(--gg-purple); text-decoration: none; font-weight: 600; }
+  .gg-autor a:hover { color: var(--gg-orange); }
   .gg-meta { font-size: 13px; color: var(--gg-muted); margin-top: 4px; }
   .gg-meta strong { color: var(--gg-text); font-weight: 600; }
   .gg-desc { font-size: 13.5px; line-height: 1.5; margin-top: 7px; }
@@ -161,7 +179,10 @@ const CONFIG = {
   AIRTABLE_TOKEN: "patAQrnw6JT5LHpk6.9217c8014d0546f9bad2a0b23e0076830e20bbd827046e9211e630f0aa7d4960",
   BASE_ID: "app48es7lwPQdEYYH",
   TABLE: "Veranstaltungen",
-  TIMEZONE: "Europe/Vienna"
+  TIMEZONE: "Europe/Vienna",
+  // Rückfall-Portraits, falls im Newsletter kein Foto erkannt wurde.
+  // Ordner "autoren" mit vorname.jpg (katharina.jpg, peter.jpg, …) neben dieser Datei ablegen.
+  AUTOR_FOTO_ORDNER: "autoren/"
 };
 
 const GOOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21c4.5 0 7.5-2.5 7.5-6.5V9.2c0-.5.2-.9.6-1.2l1.6-1.2c.4-.3.3-.9-.2-1l-2.1-.5C15.9 3.9 14.7 3 13.4 3 11.8 3 10.5 4.3 10.5 6v5.5c0 2.5-1.5 4-4 4H5c0 3 1.5 5.5 4 5.5z"/><circle cx="14" cy="6" r="0.4" fill="currentColor"/></svg>';
@@ -179,7 +200,7 @@ async function loadEvents() {
     return;
   }
   try {
-    const fields = ["Titel","Beginn","Ende","Kategorie","Beschreibung","Ort/Venue","Adresse","Ticket URL","Bild","Bild URL","Eintritt","Empfehlung","Source URL"];
+    const fields = ["Titel","Beginn","Ende","Kategorie","Beschreibung","Ort/Venue","Adresse","Ticket URL","Bild","Bild URL","Eintritt","Empfehlung","Source URL","Tipp von Name","Tipp von Foto"];
     const formula = "AND({Status}='Approved', IS_AFTER({Beginn}, DATEADD(TODAY(), -1, 'days')))";
     let url = "https://api.airtable.com/v0/" + CONFIG.BASE_ID + "/" + encodeURIComponent(CONFIG.TABLE)
       + "?filterByFormula=" + encodeURIComponent(formula)
@@ -207,7 +228,14 @@ async function loadEvents() {
       bild: (r.fields["Bild"] && r.fields["Bild"][0] && ((r.fields["Bild"][0].thumbnails && r.fields["Bild"][0].thumbnails.large && r.fields["Bild"][0].thumbnails.large.url) || r.fields["Bild"][0].url)) || r.fields["Bild URL"] || "",
       eintritt: r.fields["Eintritt"] || "",
       empfehlung: r.fields["Empfehlung"] || "",
-      source: r.fields["Source URL"] || ""
+      source: r.fields["Source URL"] || "",
+      autor: (function (v) { return Array.isArray(v) ? (v[0] || "") : (v || ""); })(r.fields["Tipp von Name"]),
+      autorFoto: (function (a) {
+        const f = Array.isArray(a) ? a[0] : null;
+        if (!f) return "";
+        return (f.thumbnails && f.thumbnails.large && f.thumbnails.large.url) || f.url || "";
+      })(r.fields["Tipp von Foto"]),
+      autorSeite: ""
     })).filter(e => e.beginn);
     render();
   } catch (err) {
@@ -288,6 +316,23 @@ function card(e, id) {
   if (e.ort) meta.push("<strong>" + esc(e.ort) + "</strong>" + (e.adresse ? " · " + esc(e.adresse) : ""));
   if (e.eintritt) meta.push("Eintritt: " + esc(e.eintritt));
   if (e.ende) meta.push("bis " + fmtTime(e.ende));
+  const autorLabel = e.empfehlung === "Wochenhighlight" ? "Wochenhighlight von" : "Tipp von";
+  // Foto aus dem Newsletter hat Vorrang; sonst hinterlegtes Portrait nach Vorname
+  const autorSlug = e.autor.toLowerCase().trim().split(/\s+/)[0]
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^a-z]/g, "");
+  const fotoUrl = e.autorFoto || (autorSlug ? CONFIG.AUTOR_FOTO_ORDNER + autorSlug + ".jpg" : "");
+  const autorName = e.autorSeite
+    ? '<a href="' + esc(e.autorSeite) + '" target="_blank" rel="noopener">' + esc(e.autor) + "</a>"
+    : "<strong>" + esc(e.autor) + "</strong>";
+  const autorBox = (e.empfehlung && e.autor)
+    ? '<div class="gg-autor">' +
+        (fotoUrl
+          ? '<img src="' + esc(fotoUrl) + '" alt="' + esc(e.autor) + '" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;gg-initial&quot;>' + esc(e.autor.charAt(0)) + '</div>\'">'
+          : '<div class="gg-initial">' + esc(e.autor.charAt(0)) + "</div>") +
+        "<span>" + autorLabel + " " + autorName + "</span>" +
+      "</div>"
+    : "";
   const desc = e.beschreibung ? '<div class="gg-desc clamp" id="d-' + id + '">' + esc(e.beschreibung) + '</div>' +
     (e.beschreibung.length > 140 ? '<button class="gg-more" onclick="toggleDesc(\'' + id + '\', this)">mehr anzeigen</button>' : "") : "";
   const links = [];
@@ -299,6 +344,7 @@ function card(e, id) {
       '<div class="gg-title-row"><span class="gg-title">' + esc(e.titel) + "</span>" + badge +
         (e.kategorie ? '<span class="gg-cat">' + esc(e.kategorie) + "</span>" : "") + "</div>" +
       (meta.length ? '<div class="gg-meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>" : "") +
+      autorBox +
       desc +
       (links.length ? '<div class="gg-links">' + links.join("") + "</div>" : "") +
     "</div>" +
@@ -334,10 +380,10 @@ function demoEvents() {
   const d = days => { const x = new Date(); x.setDate(x.getDate() + days); return x; };
   const at = (base, h, m) => { const x = new Date(base); x.setHours(h, m || 0, 0, 0); return x; };
   return [
-    { titel: "Jazz im Park", beginn: at(d(0), 19, 30), ende: at(d(0), 22, 0), kategorie: "Musik", beschreibung: "Open-Air-Konzert im Stadtpark mit lokalen Jazzgrößen. Decke mitbringen, Getränke gibt's vor Ort. Bei Schlechtwetter wird ins Forum Stadtpark ausgewichen.", ort: "Stadtpark", adresse: "8010 Graz", ticket: "", bild: "", eintritt: "frei", empfehlung: "Tagestipp", source: "" },
+    { titel: "Jazz im Park", beginn: at(d(0), 19, 30), ende: at(d(0), 22, 0), kategorie: "Musik", beschreibung: "Open-Air-Konzert im Stadtpark mit lokalen Jazzgrößen. Decke mitbringen, Getränke gibt's vor Ort. Bei Schlechtwetter wird ins Forum Stadtpark ausgewichen.", ort: "Stadtpark", adresse: "8010 Graz", ticket: "", bild: "", eintritt: "frei", empfehlung: "Tagestipp", source: "", autor: "Alexandra", autorFoto: "", autorSeite: "https://ganzgraz.at/author/alexandra-polic" },
     { titel: "Lesung: Neue Grazer Literatur", beginn: at(d(0), 20, 0), ende: null, kategorie: "Literatur", beschreibung: "Drei junge Autor:innen lesen aus ihren Debüts.", ort: "Literaturhaus Graz", adresse: "Elisabethstraße 30", ticket: "https://example.com", bild: "", eintritt: "EUR 8", empfehlung: "", source: "" },
     { titel: "Flohmarkt am Kaiser-Josef-Platz", beginn: at(d(1), 8, 0), ende: at(d(1), 13, 0), kategorie: "Sonstiges", beschreibung: "Der Klassiker: stöbern, feilschen, finden.", ort: "Kaiser-Josef-Platz", adresse: "", ticket: "", bild: "", eintritt: "frei", empfehlung: "", source: "" },
-    { titel: "Elevate Festival: Eröffnung", beginn: at(d(2), 18, 0), ende: null, kategorie: "Festival", beschreibung: "Musik, Kunst und politischer Diskurs — das Elevate eröffnet im Dom im Berg. Das ganze Programm auf elevate.at. Unser Highlight der Woche: allein das Eröffnungskonzert lohnt den Besuch, danach Diskussionsrunden und Club-Programm bis in die Früh.", ort: "Dom im Berg", adresse: "Schloßbergplatz", ticket: "https://example.com", bild: "", eintritt: "VVK 22 / AK 25", empfehlung: "Wochenhighlight", source: "https://elevate.at" },
+    { titel: "Elevate Festival: Eröffnung", beginn: at(d(2), 18, 0), ende: null, kategorie: "Festival", beschreibung: "Musik, Kunst und politischer Diskurs — das Elevate eröffnet im Dom im Berg. Das ganze Programm auf elevate.at. Unser Highlight der Woche: allein das Eröffnungskonzert lohnt den Besuch, danach Diskussionsrunden und Club-Programm bis in die Früh.", ort: "Dom im Berg", adresse: "Schloßbergplatz", ticket: "https://example.com", bild: "", eintritt: "VVK 22 / AK 25", empfehlung: "Wochenhighlight", source: "https://elevate.at", autor: "Claudio", autorFoto: "", autorSeite: "https://ganzgraz.at/author/claudio-niggenkemper" },
     { titel: "Kabarett: Grazer Pointen", beginn: at(d(2), 19, 30), ende: null, kategorie: "Kabarett", beschreibung: "Lokalkolorit trifft Satire.", ort: "Theatercafé", adresse: "", ticket: "", bild: "", eintritt: "EUR 18", empfehlung: "", source: "" },
     { titel: "Kinderworkshop: Museum zum Angreifen", beginn: at(d(5), 10, 0), ende: at(d(5), 12, 0), kategorie: "Familie", beschreibung: "Für Kinder von 6–10 Jahren, Anmeldung erforderlich.", ort: "Joanneumsviertel", adresse: "", ticket: "", bild: "", eintritt: "EUR 5", empfehlung: "Tagestipp", source: "" },
     { titel: "Diskussion: Wohin wächst Graz?", beginn: at(d(12), 19, 0), ende: null, kategorie: "Diskussion", beschreibung: "Stadtplanung, Leistbarkeit, Verkehr — Podiumsdiskussion mit Publikumsfragen.", ort: "Forum Stadtpark", adresse: "", ticket: "", bild: "", eintritt: "frei", empfehlung: "", source: "" }
