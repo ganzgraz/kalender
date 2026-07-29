@@ -51,20 +51,17 @@
   .gg-select:focus { outline: 2px solid var(--gg-purple); }
 
   /* ---------- Event einreichen ---------- */
-  details.gg-submit { margin: 0 0 14px; }
-  details.gg-submit > summary {
-    list-style: none; display: inline-flex; align-items: center; gap: 6px;
-    cursor: pointer;
-    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 14px;
-    letter-spacing: .02em; padding: 9px 16px 7px; border-radius: 999px;
-    background: var(--gg-orange); color: #fff; border: 2px solid var(--gg-orange);
-    transition: background .15s, border-color .15s;
+  .gg-submit-btn {
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 16px; letter-spacing: .02em;
+    padding: 11px 20px 9px; border-radius: 999px;
+    border: 2px solid var(--gg-orange); background: var(--gg-orange); color: #fff;
+    cursor: pointer; transition: background .15s, border-color .15s;
   }
-  details.gg-submit > summary:hover { background: #e67c00; border-color: #e67c00; }
-  details.gg-submit > summary::-webkit-details-marker { display: none; }
-  details.gg-submit[open] > summary { background: var(--gg-purple); border-color: var(--gg-purple); }
+  .gg-submit-btn:hover { background: #e67c00; border-color: #e67c00; }
+  .gg-submit-btn.active { background: var(--gg-purple); border-color: var(--gg-purple); }
   .gg-submit-body {
-    margin-top: 10px; padding: 16px 18px;
+    margin: 4px 0 14px; padding: 16px 18px;
     border: 2px solid var(--gg-pastellorange); border-radius: 14px; background: #fff8f0;
     font-size: 13.5px; line-height: 1.55;
   }
@@ -208,18 +205,6 @@
 </head>
 <body>
 <div class="gg-wrap">
-  <details class="gg-submit">
-    <summary>+ Event einreichen</summary>
-    <div class="gg-submit-body">
-      <strong>Du veranstaltest etwas in Graz?</strong> Schick uns dein Event – so funktioniert's:
-      <ol>
-        <li>E-Mail an <a href="mailto:event@ganzgraz.at">event@ganzgraz.at</a> mit <strong>Titel, Datum + Uhrzeit und Ort</strong> – gerne auch Kurzbeschreibung, Eintritt, Ticket-Link und ein Bild.</li>
-        <li>Du bekommst sofort eine automatische Bestätigung. Auch mehrere Events oder dein ganzes Monatsprogramm in einer Mail sind willkommen.</li>
-        <li>Unsere Redaktion prüft die Einreichung – danach erscheint dein Event hier im Kalender.</li>
-      </ol>
-      <a class="gg-submit-mail" href="mailto:event@ganzgraz.at?subject=Event-Einreichung&body=Hallo%20ganzgraz-Team!%0A%0AWir%20m%C3%B6chten%20folgendes%20Event%20einreichen%3A%0A%0ATitel%3A%20%0ADatum%20%2B%20Uhrzeit%3A%20%0AOrt%2FVenue%3A%20%0AAdresse%3A%20%0AEintritt%3A%20%0ATicket-Link%3A%20%0AKurzbeschreibung%3A%20%0A%0ABild%20h%C3%A4ngen%20wir%20an.">Jetzt per E-Mail einreichen</a>
-    </div>
-  </details>
   <div class="gg-filters" id="filters">
     <button class="gg-tab active" data-range="heute">Heute</button>
     <button class="gg-tab" data-range="morgen">Morgen</button>
@@ -229,6 +214,16 @@
     <select class="gg-select" id="catSelect">
       <option value="">Alle Kategorien</option>
     </select>
+    <button class="gg-submit-btn" id="submitToggle" type="button">Event einreichen</button>
+  </div>
+  <div class="gg-submit-body" id="submitBox" hidden>
+    <strong>Du veranstaltest etwas in Graz?</strong> Schick uns dein Event – so funktioniert's:
+    <ol>
+      <li>E-Mail an <a href="mailto:event@ganzgraz.at">event@ganzgraz.at</a> mit <strong>mindestens Titel, Datum + Uhrzeit und Ort</strong> – gerne auch Kurzbeschreibung, Eintritt, Ticket-Link und ein Bild.</li>
+      <li>Du bekommst sofort eine automatische Bestätigung. Auch mehrere Events oder dein ganzes Monatsprogramm in einer Mail sind willkommen.</li>
+      <li>Unsere Redaktion prüft die Einreichung – danach erscheint dein Event hier im Kalender.</li>
+    </ol>
+    <a class="gg-submit-mail" href="mailto:event@ganzgraz.at?subject=Event-Einreichung&body=Hallo%20ganzgraz-Team!%0A%0AWir%20m%C3%B6chten%20folgendes%20Event%20einreichen%3A%0A%0ATitel%3A%20%0ADatum%20%2B%20Uhrzeit%3A%20%0AOrt%2FVenue%3A%20%0AAdresse%3A%20%0AEintritt%3A%20%0ATicket-Link%3A%20%0AKurzbeschreibung%3A%20%0A%0ABild%20siehe%20Anhang.">Jetzt per E-Mail einreichen</a>
   </div>
   <div id="content"><div class="gg-empty">Events werden geladen …</div></div>
   <div class="gg-footer"><span class="goose">ganz</span><span class="goose" style="font-size:13px">graz</span> Eventkalender · Ein Event einreichen? <a href="mailto:event@ganzgraz.at" style="color:var(--gg-purple)">event@ganzgraz.at</a></div>
@@ -463,6 +458,11 @@ document.getElementById("tippToggle").addEventListener("click", function () {
 document.getElementById("catSelect").addEventListener("change", function () {
   state.cat = this.value;
   render();
+});
+document.getElementById("submitToggle").addEventListener("click", function () {
+  var box = document.getElementById("submitBox");
+  box.hidden = !box.hidden;
+  this.classList.toggle("active", !box.hidden);
 });
 
 /* ---------- Demo-Daten (nur ohne Token) ---------- */
