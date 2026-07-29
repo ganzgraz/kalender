@@ -396,7 +396,8 @@ loadEvents();
 /* Höhe an Elternseite melden (Auto-Resize des Embeds, gegen doppelte Scrollleiste) */
 (function () {
   function postHeight() {
-    parent.postMessage({ ggKalenderHeight: document.body.scrollHeight }, '*');
+    var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    parent.postMessage({ ggKalenderHeight: h }, '*');
   }
   new ResizeObserver(postHeight).observe(document.body);
   window.addEventListener('load', postHeight);
