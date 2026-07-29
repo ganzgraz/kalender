@@ -50,6 +50,31 @@
   }
   .gg-select:focus { outline: 2px solid var(--gg-purple); }
 
+  /* ---------- Monats-Accordion (Tab "Alle") ---------- */
+  details.gg-month {
+    margin: 22px 0; padding: 0 14px;
+    border: 2px solid var(--gg-flieder); border-radius: 16px; background: #fff;
+  }
+  details.gg-month > summary {
+    cursor: pointer; list-style: none; padding: 13px 2px 11px;
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 18px; color: var(--gg-purple);
+    text-transform: uppercase; letter-spacing: .02em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  details.gg-month > summary::-webkit-details-marker { display: none; }
+  details.gg-month > summary::before {
+    content: "\25B8"; color: var(--gg-orange); transition: transform .15s;
+  }
+  details.gg-month[open] > summary::before { transform: rotate(90deg); }
+  details.gg-month > summary:hover { color: var(--gg-orange); }
+  details.gg-month[open] { padding-bottom: 14px; }
+  .gg-month-count {
+    font-family: 'Montserrat', sans-serif; font-weight: 500;
+    font-size: 13px; color: var(--gg-muted); text-transform: none;
+  }
+  details.gg-month .gg-day:first-of-type { margin-top: 4px; }
+
   /* ---------- Tagesgruppen ---------- */
   .gg-day {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
@@ -293,6 +318,29 @@ function render() {
     box.innerHTML = '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
     return;
   }
+  let html = "";
+  if (state.range === "alle") {
+    // Nächste 30 Tage detailliert, spätere Monate als zusammenklappbare Abschnitte
+    const t30 = todayKey(30);
+    const near = evs.filter(e => viennaDateKey(e.beginn) <= t30);
+    const far = evs.filter(e => viennaDateKey(e.beginn) > t30);
+    html += dayGroupsHtml(near);
+    const months = {};
+    far.forEach(e => { const mk = viennaDateKey(e.beginn).slice(0, 7); (months[mk] = months[mk] || []).push(e); });
+    Object.keys(months).sort().forEach(mk => {
+      const list = months[mk];
+      const label = new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, month: "long", year: "numeric" }).format(list[0].beginn);
+      html += '<details class="gg-month"><summary>' + label +
+        ' <span class="gg-month-count">· ' + list.length + (list.length === 1 ? " Event" : " Events") + '</span></summary>' +
+        dayGroupsHtml(list) + '</details>';
+    });
+  } else {
+    html = dayGroupsHtml(evs);
+  }
+  box.innerHTML = html;
+}
+
+function dayGroupsHtml(evs) {
   // Nach Tag gruppieren
   const groups = {};
   evs.forEach(e => { const k = viennaDateKey(e.beginn); (groups[k] = groups[k] || []).push(e); });
@@ -304,7 +352,7 @@ function render() {
     html += '<div class="gg-day">' + fmtDayHeading(list[0].beginn) + "</div>";
     list.forEach((e, i) => { html += card(e, k + "-" + i); });
   });
-  box.innerHTML = html;
+  return html;
 }
 
 function card(e, id) {
