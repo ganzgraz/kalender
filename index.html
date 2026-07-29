@@ -50,6 +50,35 @@
   }
   .gg-select:focus { outline: 2px solid var(--gg-purple); }
 
+  /* ---------- Event einreichen ---------- */
+  details.gg-submit { margin: 0 0 14px; }
+  details.gg-submit > summary {
+    list-style: none; display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer;
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 14px;
+    letter-spacing: .02em; padding: 9px 16px 7px; border-radius: 999px;
+    background: var(--gg-orange); color: #fff; border: 2px solid var(--gg-orange);
+    transition: background .15s, border-color .15s;
+  }
+  details.gg-submit > summary:hover { background: #e67c00; border-color: #e67c00; }
+  details.gg-submit > summary::-webkit-details-marker { display: none; }
+  details.gg-submit[open] > summary { background: var(--gg-purple); border-color: var(--gg-purple); }
+  .gg-submit-body {
+    margin-top: 10px; padding: 16px 18px;
+    border: 2px solid var(--gg-pastellorange); border-radius: 14px; background: #fff8f0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .gg-submit-body ol { margin: 8px 0 12px 18px; }
+  .gg-submit-body li { margin-bottom: 5px; }
+  .gg-submit-body a { color: var(--gg-purple); font-weight: 600; }
+  a.gg-submit-mail {
+    display: inline-block;
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 13px;
+    background: var(--gg-orange); color: #fff; text-decoration: none;
+    padding: 9px 14px 7px; border-radius: 999px;
+  }
+  a.gg-submit-mail:hover { background: #e67c00; }
+
   /* ---------- Monats-Accordion (Tab "Alle") ---------- */
   details.gg-month {
     margin: 22px 0; padding: 0 14px;
@@ -93,7 +122,10 @@
   }
   .gg-card:hover { box-shadow: 0 3px 14px rgba(78,41,150,.12); }
   .gg-card.tipp { border: 2px solid var(--gg-orange); background: #fff8f0; }
-  .gg-card.highlight { border: 2px solid var(--gg-orange); background: linear-gradient(135deg,#fff8f0 0%, #fdeede 100%); }
+  .gg-card.highlight { border: 2px solid var(--gg-purple); background: linear-gradient(135deg,#f5eefe 0%, #e9dcfa 100%); }
+  .gg-card.highlight .gg-badge { background: var(--gg-purple); }
+  .gg-card.highlight .gg-autor { background: #efe6fb; }
+  .gg-card.highlight .gg-autor img, .gg-card.highlight .gg-autor .gg-initial { border-color: var(--gg-purple); }
   .gg-time {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
     font-size: 15px; color: var(--gg-purple);
@@ -176,6 +208,18 @@
 </head>
 <body>
 <div class="gg-wrap">
+  <details class="gg-submit">
+    <summary>+ Event einreichen</summary>
+    <div class="gg-submit-body">
+      <strong>Du veranstaltest etwas in Graz?</strong> Schick uns dein Event – so funktioniert's:
+      <ol>
+        <li>E-Mail an <a href="mailto:event@ganzgraz.at">event@ganzgraz.at</a> mit <strong>Titel, Datum + Uhrzeit und Ort</strong> – gerne auch Kurzbeschreibung, Eintritt, Ticket-Link und ein Bild.</li>
+        <li>Du bekommst sofort eine automatische Bestätigung. Auch mehrere Events oder dein ganzes Monatsprogramm in einer Mail sind willkommen.</li>
+        <li>Unsere Redaktion prüft die Einreichung – danach erscheint dein Event hier im Kalender.</li>
+      </ol>
+      <a class="gg-submit-mail" href="mailto:event@ganzgraz.at?subject=Event-Einreichung&body=Hallo%20ganzgraz-Team!%0A%0AWir%20m%C3%B6chten%20folgendes%20Event%20einreichen%3A%0A%0ATitel%3A%20%0ADatum%20%2B%20Uhrzeit%3A%20%0AOrt%2FVenue%3A%20%0AAdresse%3A%20%0AEintritt%3A%20%0ATicket-Link%3A%20%0AKurzbeschreibung%3A%20%0A%0ABild%20h%C3%A4ngen%20wir%20an.">Jetzt per E-Mail einreichen</a>
+    </div>
+  </details>
   <div class="gg-filters" id="filters">
     <button class="gg-tab active" data-range="heute">Heute</button>
     <button class="gg-tab" data-range="morgen">Morgen</button>
