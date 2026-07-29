@@ -180,7 +180,6 @@
     <button class="gg-tab active" data-range="heute">Heute</button>
     <button class="gg-tab" data-range="morgen">Morgen</button>
     <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
-    <button class="gg-tab" data-range="30">Nächste 30 Tage</button>
     <button class="gg-tab" data-range="alle">Alle</button>
     <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">unsere Tipps</button>
     <select class="gg-select" id="catSelect">
@@ -291,13 +290,12 @@ function esc(s) {
 
 /* ---------- Filtern & Rendern ---------- */
 function filtered() {
-  const t0 = todayKey(0), t1 = todayKey(1), t7 = todayKey(7), t30 = todayKey(30);
+  const t0 = todayKey(0), t1 = todayKey(1), t7 = todayKey(7);
   return allEvents.filter(e => {
     const k = viennaDateKey(e.beginn);
     if (state.range === "heute" && k !== t0) return false;
     if (state.range === "morgen" && k !== t1) return false;
     if (state.range === "7" && (k < t0 || k > t7)) return false;
-    if (state.range === "30" && (k < t0 || k > t30)) return false;
     if (state.range === "alle" && k < t0) return false;
     if (state.cat && e.kategorie !== state.cat) return false;
     if (state.tippOnly && !e.empfehlung) return false;
