@@ -231,20 +231,15 @@
 
 <script>
 /* ================= KONFIGURATION =================
-   1) In Airtable einen Personal Access Token erstellen:
-      https://airtable.com/create/tokens
-      - Scope: NUR data.records:read
-      - Zugriff: NUR Base "Ganz Graz Eventkalender"
-   2) Token unten einsetzen und Datei hochladen.
-   Solange kein Token gesetzt ist, zeigt das Widget Demo-Events an.
+   Die Events kommen über einen Endpoint des ganzgraz-Apps-Script-Projekts
+   (Google Web App). Dort liegt der Airtable-Token serverseitig; ausgeliefert
+   werden nur freigegebene Events mit den Feldern, die unten angezeigt werden.
+   Neu bereitstellen: Apps Script → Deploy → Manage deployments → Version "New".
 =================================================== */
 const CONFIG = {
-  AIRTABLE_TOKEN: "patAQrnw6JT5LHpk6.9217c8014d0546f9bad2a0b23e0076830e20bbd827046e9211e630f0aa7d4960",
-  BASE_ID: "app48es7lwPQdEYYH",
-  TABLE: "Veranstaltungen",
+  EVENTS_URL: "https://script.google.com/macros/s/AKfycbyzCdgJfrBRChHAaYqB1Bz4x7Sqz2-lPBnBRlVDmVKyS9ygWdGA_U2LdfS3irW7Uxdc/exec",
   TIMEZONE: "Europe/Vienna",
-  // Rückfall-Portraits, falls im Newsletter kein Foto erkannt wurde.
-  // Ordner "autoren" mit vorname.jpg (katharina.jpg, peter.jpg, …) neben dieser Datei ablegen.
+  // Portraits der Autor:innen: Ordner "autoren" mit vorname.jpg neben dieser Datei.
   AUTOR_FOTO_ORDNER: "autoren/"
 };
 
@@ -255,49 +250,25 @@ let state = { range: "heute", cat: "", tippOnly: false };
 
 /* ---------- Daten laden ---------- */
 async function loadEvents() {
-  if (!CONFIG.AIRTABLE_TOKEN || CONFIG.AIRTABLE_TOKEN === "HIER_TOKEN_EINSETZEN") {
-    document.getElementById("content").insertAdjacentHTML("beforebegin",
-      '<div class="gg-demo-note">Demo-Modus: Es werden Beispiel-Events angezeigt. Airtable-Token in der Datei einsetzen, um echte Events zu laden.</div>');
-    allEvents = demoEvents();
-    render();
-    return;
-  }
   try {
-    const fields = ["Titel","Beginn","Ende","Kategorie","Beschreibung","Ort/Venue","Adresse","Ticket URL","Bild","Bild URL","Eintritt","Empfehlung","Source URL","Tipp von Name","Tipp von Foto"];
-    const formula = "AND({Status}='Approved', IS_AFTER({Beginn}, DATEADD(TODAY(), -1, 'days')))";
-    let url = "https://api.airtable.com/v0/" + CONFIG.BASE_ID + "/" + encodeURIComponent(CONFIG.TABLE)
-      + "?filterByFormula=" + encodeURIComponent(formula)
-      + "&sort%5B0%5D%5Bfield%5D=Beginn&sort%5B0%5D%5Bdirection%5D=asc&pageSize=100"
-      + fields.map(f => "&fields%5B%5D=" + encodeURIComponent(f)).join("");
-    let records = [], offset = null;
-    do {
-      const res = await fetch(url + (offset ? "&offset=" + offset : ""), {
-        headers: { Authorization: "Bearer " + CONFIG.AIRTABLE_TOKEN }
-      });
-      if (!res.ok) throw new Error("Airtable " + res.status);
-      const data = await res.json();
-      records = records.concat(data.records);
-      offset = data.offset;
-    } while (offset);
-    allEvents = records.map(r => ({
-      titel: r.fields["Titel"] || "Ohne Titel",
-      beginn: r.fields["Beginn"] ? new Date(r.fields["Beginn"]) : null,
-      ende: r.fields["Ende"] ? new Date(r.fields["Ende"]) : null,
-      kategorie: r.fields["Kategorie"] || "",
-      beschreibung: r.fields["Beschreibung"] || "",
-      ort: r.fields["Ort/Venue"] || "",
-      adresse: r.fields["Adresse"] || "",
-      ticket: r.fields["Ticket URL"] || "",
-      bild: (r.fields["Bild"] && r.fields["Bild"][0] && ((r.fields["Bild"][0].thumbnails && r.fields["Bild"][0].thumbnails.large && r.fields["Bild"][0].thumbnails.large.url) || r.fields["Bild"][0].url)) || r.fields["Bild URL"] || "",
-      eintritt: r.fields["Eintritt"] || "",
-      empfehlung: r.fields["Empfehlung"] || "",
-      source: r.fields["Source URL"] || "",
-      autor: (function (v) { return Array.isArray(v) ? (v[0] || "") : (v || ""); })(r.fields["Tipp von Name"]),
-      autorFoto: (function (a) {
-        const f = Array.isArray(a) ? a[0] : null;
-        if (!f) return "";
-        return (f.thumbnails && f.thumbnails.large && f.thumbnails.large.url) || f.url || "";
-      })(r.fields["Tipp von Foto"]),
+    const res = await fetch(CONFIG.EVENTS_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("Endpoint " + res.status);
+    const data = await res.json();
+    allEvents = (data.events || []).map(e => ({
+      titel: e.titel || "Ohne Titel",
+      beginn: e.beginn ? new Date(e.beginn) : null,
+      ende: e.ende ? new Date(e.ende) : null,
+      kategorie: e.kategorie || "",
+      beschreibung: e.beschreibung || "",
+      ort: e.ort || "",
+      adresse: e.adresse || "",
+      ticket: e.ticket || "",
+      bild: e.bild || "",
+      eintritt: e.eintritt || "",
+      empfehlung: e.empfehlung || "",
+      source: e.source || "",
+      autor: e.autor || "",
+      autorFoto: "",
       autorSeite: ""
     })).filter(e => e.beginn);
     render();
@@ -464,21 +435,6 @@ document.getElementById("submitToggle").addEventListener("click", function () {
   box.hidden = !box.hidden;
   this.classList.toggle("active", !box.hidden);
 });
-
-/* ---------- Demo-Daten (nur ohne Token) ---------- */
-function demoEvents() {
-  const d = days => { const x = new Date(); x.setDate(x.getDate() + days); return x; };
-  const at = (base, h, m) => { const x = new Date(base); x.setHours(h, m || 0, 0, 0); return x; };
-  return [
-    { titel: "Jazz im Park", beginn: at(d(0), 19, 30), ende: at(d(0), 22, 0), kategorie: "Musik", beschreibung: "Open-Air-Konzert im Stadtpark mit lokalen Jazzgrößen. Decke mitbringen, Getränke gibt's vor Ort. Bei Schlechtwetter wird ins Forum Stadtpark ausgewichen.", ort: "Stadtpark", adresse: "8010 Graz", ticket: "", bild: "", eintritt: "frei", empfehlung: "Tagestipp", source: "", autor: "Alexandra", autorFoto: "", autorSeite: "https://ganzgraz.at/author/alexandra-polic" },
-    { titel: "Lesung: Neue Grazer Literatur", beginn: at(d(0), 20, 0), ende: null, kategorie: "Literatur", beschreibung: "Drei junge Autor:innen lesen aus ihren Debüts.", ort: "Literaturhaus Graz", adresse: "Elisabethstraße 30", ticket: "https://example.com", bild: "", eintritt: "EUR 8", empfehlung: "", source: "" },
-    { titel: "Flohmarkt am Kaiser-Josef-Platz", beginn: at(d(1), 8, 0), ende: at(d(1), 13, 0), kategorie: "Sonstiges", beschreibung: "Der Klassiker: stöbern, feilschen, finden.", ort: "Kaiser-Josef-Platz", adresse: "", ticket: "", bild: "", eintritt: "frei", empfehlung: "", source: "" },
-    { titel: "Elevate Festival: Eröffnung", beginn: at(d(2), 18, 0), ende: null, kategorie: "Festival", beschreibung: "Musik, Kunst und politischer Diskurs — das Elevate eröffnet im Dom im Berg. Das ganze Programm auf elevate.at. Unser Highlight der Woche: allein das Eröffnungskonzert lohnt den Besuch, danach Diskussionsrunden und Club-Programm bis in die Früh.", ort: "Dom im Berg", adresse: "Schloßbergplatz", ticket: "https://example.com", bild: "", eintritt: "VVK 22 / AK 25", empfehlung: "Wochenhighlight", source: "https://elevate.at", autor: "Claudio", autorFoto: "", autorSeite: "https://ganzgraz.at/author/claudio-niggenkemper" },
-    { titel: "Kabarett: Grazer Pointen", beginn: at(d(2), 19, 30), ende: null, kategorie: "Kabarett", beschreibung: "Lokalkolorit trifft Satire.", ort: "Theatercafé", adresse: "", ticket: "", bild: "", eintritt: "EUR 18", empfehlung: "", source: "" },
-    { titel: "Kinderworkshop: Museum zum Angreifen", beginn: at(d(5), 10, 0), ende: at(d(5), 12, 0), kategorie: "Familie", beschreibung: "Für Kinder von 6–10 Jahren, Anmeldung erforderlich.", ort: "Joanneumsviertel", adresse: "", ticket: "", bild: "", eintritt: "EUR 5", empfehlung: "Tagestipp", source: "" },
-    { titel: "Diskussion: Wohin wächst Graz?", beginn: at(d(12), 19, 0), ende: null, kategorie: "Diskussion", beschreibung: "Stadtplanung, Leistbarkeit, Verkehr — Podiumsdiskussion mit Publikumsfragen.", ort: "Forum Stadtpark", adresse: "", ticket: "", bild: "", eintritt: "frei", empfehlung: "", source: "" }
-  ];
-}
 
 loadEvents();
 </script>
