@@ -262,35 +262,74 @@ const GOOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 let allEvents = [];
 let state = { range: "heute", cat: "", tippOnly: false };
 
-/* ---------- Daten laden ---------- */
-async function loadEvents() {
+/* ---------- Daten laden ----------
+   Reihenfolge fürs schnelle Anzeigen:
+   1) letzter Stand aus dem Browser-Speicher (sofort sichtbar)
+   2) statische Datei events.json vom GitHub-CDN (rund 0,1 s, wird alle 15 Min aktualisiert)
+   3) Rückfallebene: Apps-Script-Endpoint (immer aktuell, aber rund 1,5 s)
+------------------------------------- */
+const CACHE_KEY = "ggKalenderCache";
+
+function mapEvents(liste) {
+  return (liste || []).map(e => ({
+    titel: e.titel || "Ohne Titel",
+    beginn: e.beginn ? new Date(e.beginn) : null,
+    ende: e.ende ? new Date(e.ende) : null,
+    kategorie: e.kategorie || "",
+    beschreibung: e.beschreibung || "",
+    ort: e.ort || "",
+    adresse: e.adresse || "",
+    ticket: e.ticket || "",
+    bild: e.bild || "",
+    eintritt: e.eintritt || "",
+    empfehlung: e.empfehlung || "",
+    source: e.source || "",
+    autor: e.autor || "",
+    autorFoto: "",
+    autorSeite: ""
+  })).filter(e => e.beginn);
+}
+
+async function holeJson(url) {
   try {
-    const res = await fetch(CONFIG.EVENTS_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("Endpoint " + res.status);
-    const data = await res.json();
-    allEvents = (data.events || []).map(e => ({
-      titel: e.titel || "Ohne Titel",
-      beginn: e.beginn ? new Date(e.beginn) : null,
-      ende: e.ende ? new Date(e.ende) : null,
-      kategorie: e.kategorie || "",
-      beschreibung: e.beschreibung || "",
-      ort: e.ort || "",
-      adresse: e.adresse || "",
-      ticket: e.ticket || "",
-      bild: e.bild || "",
-      eintritt: e.eintritt || "",
-      empfehlung: e.empfehlung || "",
-      source: e.source || "",
-      autor: e.autor || "",
-      autorFoto: "",
-      autorSeite: ""
-    })).filter(e => e.beginn);
-    render();
-  } catch (err) {
-    document.getElementById("content").innerHTML =
-      '<div class="gg-error">Der Kalender konnte gerade nicht geladen werden. Bitte später noch einmal versuchen.</div>';
-    console.error(err);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const daten = await res.json();
+    return (daten && daten.events) ? daten : null;
+  } catch (err) { return null; }
+}
+
+async function loadEvents() {
+  // 1) Sofort den letzten bekannten Stand zeigen
+  let hatteEtwas = false;
+  try {
+    const roh = localStorage.getItem(CACHE_KEY);
+    if (roh) {
+      const cache = JSON.parse(roh);
+      if (cache && cache.events && cache.events.length) {
+        allEvents = mapEvents(cache.events);
+        render();
+        hatteEtwas = true;
+      }
+    }
+  } catch (err) { /* privater Modus o. Ä. – dann eben ohne */ }
+
+  // 2) Statische Datei, 3) sonst Endpoint
+  const minute = Math.floor(Date.now() / 60000);
+  let daten = await holeJson("events.json?v=" + minute);
+  if (!daten) daten = await holeJson(CONFIG.EVENTS_URL);
+
+  if (!daten) {
+    if (!hatteEtwas) {
+      document.getElementById("content").innerHTML =
+        '<div class="gg-error">Der Kalender konnte gerade nicht geladen werden. Bitte später noch einmal versuchen.</div>';
+    }
+    return;
   }
+
+  allEvents = mapEvents(daten.events);
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ events: daten.events, stand: daten.stand })); } catch (err) {}
+  render();
 }
 
 /* ---------- Hilfsfunktionen (Zeitzone Wien) ---------- */
