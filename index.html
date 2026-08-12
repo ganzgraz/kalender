@@ -492,7 +492,10 @@ document.getElementById("submitToggle").addEventListener("click", function () {
 loadEvents();
 </script>
 <script>
-/* Höhe an Elternseite melden (Auto-Resize des Embeds, gegen doppelte Scrollleiste) */
+/* Höhe an Elternseite melden (Auto-Resize des Embeds, gegen doppelte Scrollleiste)
+   Wichtig: Der Kalender rendert sehr schnell – schneller, als die einbettende Seite
+   ihren Listener registriert. Deshalb wird die Höhe nicht nur bei Änderungen gemeldet,
+   sondern zusätzlich mehrmals in den ersten Sekunden wiederholt. */
 (function () {
   function postHeight() {
     var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
@@ -500,7 +503,7 @@ loadEvents();
   }
   new ResizeObserver(postHeight).observe(document.body);
   window.addEventListener('load', postHeight);
-})();
+  [50, 200, 500, 1000, 2000, 4000].forEach(function (ms) { setTimeout(postHeight, ms); });})();
 </script>
 </body>
 </html>
