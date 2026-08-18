@@ -424,7 +424,15 @@ function card(e, id) {
   const meta = [];
   if (e.ort) meta.push("<strong>" + esc(e.ort) + "</strong>" + (e.adresse ? " · " + esc(e.adresse) : ""));
   if (e.eintritt) meta.push("Eintritt: " + esc(e.eintritt));
-  if (e.ende) meta.push("bis " + fmtTime(e.ende));
+  if (e.ende) {
+    // Endet das Event an einem anderen Tag, zeigen wir das Enddatum statt nur der
+    // Uhrzeit - sonst wirkt ein mehrtaegiges Festival, als waere es am ersten Abend vorbei.
+    const endeTag = viennaDateKey(e.ende);
+    const startTag = viennaDateKey(e.beginn);
+    meta.push(endeTag === startTag
+      ? "bis " + fmtTime(e.ende)
+      : "bis " + new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, day: "numeric", month: "long" }).format(e.ende));
+  }
   const autorLabel = e.empfehlung === "Wochenhighlight" ? "Wochenhighlight von" : "Tipp von";
   // Foto aus dem Newsletter hat Vorrang; sonst hinterlegtes Portrait nach Vorname
   const autorSlug = e.autor.toLowerCase().trim().split(/\s+/)[0]
