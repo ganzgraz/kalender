@@ -191,7 +191,14 @@
     border-bottom: 2px solid var(--gg-pastellorange);
   }
   .gg-links a:hover { color: var(--gg-orange); }
-  .gg-img {
+  .gg-figur { margin: 0; }
+.gg-credit {
+  font-size: 11px;
+  color: #8a8a8a;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+.gg-img {
     width: 92px; height: 92px; object-fit: cover; border-radius: 10px; flex-shrink: 0;
   }
   .gg-empty {
@@ -281,6 +288,7 @@ function mapEvents(liste) {
     adresse: e.adresse || "",
     ticket: e.ticket || "",
     bild: e.bild || "",
+    credit: e.credit || "",
     eintritt: e.eintritt || "",
     empfehlung: e.empfehlung || "",
     source: e.source || "",
@@ -465,7 +473,10 @@ function card(e, id) {
       desc +
       (links.length ? '<div class="gg-links">' + links.join("") + "</div>" : "") +
     "</div>" +
-    (e.bild ? '<img class="gg-img" src="' + esc(e.bild) + '" alt="" loading="lazy" onerror="this.remove()">' : "") +
+    (e.bild
+      ? '<figure class="gg-figur"><img class="gg-img" src="' + esc(e.bild) + '" alt="" loading="lazy" onerror="this.closest(\'figure\').remove()">' +
+        (e.credit ? '<figcaption class="gg-credit">' + esc(e.credit) + '</figcaption>' : "") + '</figure>'
+      : "") +
   "</div>";
 }
 
