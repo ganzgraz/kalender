@@ -191,12 +191,19 @@
     border-bottom: 2px solid var(--gg-pastellorange);
   }
   .gg-links a:hover { color: var(--gg-orange); }
-  .gg-figur { margin: 0; }
+  .gg-figur {
+  /* Feste Breite wie das Bild: Ein langer Credit darf die Spalte nicht
+     aufziehen und damit Bild und Text verschieben. */
+  margin: 0;
+  width: 92px;
+  flex: 0 0 92px;
+}
 .gg-credit {
   font-size: 11px;
   color: #8a8a8a;
   margin-top: 4px;
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .gg-img {
     width: 92px; height: 92px; object-fit: cover; border-radius: 10px; flex-shrink: 0;
@@ -424,6 +431,13 @@ function dayGroupsHtml(evs) {
   return html;
 }
 
+// Nur echte Urheberangaben werden unter das Bild gesetzt. Sätze wie "Mit
+// freundlicher Genehmigung des Künstlers" sind Nutzungshinweise und bleiben
+// in Airtable, taugen aber nicht als Bildunterschrift.
+function zeigeCredit(c) {
+  return !!c && /foto|photo|bild|©|\(c\)/i.test(c);
+}
+
 function card(e, id) {
   const cls = e.empfehlung === "Wochenhighlight" ? "gg-card highlight" : e.empfehlung ? "gg-card tipp" : "gg-card";
   const badge = e.empfehlung === "Wochenhighlight"
@@ -475,7 +489,7 @@ function card(e, id) {
     "</div>" +
     (e.bild
       ? '<figure class="gg-figur"><img class="gg-img" src="' + esc(e.bild) + '" alt="" loading="lazy" onerror="this.closest(\'figure\').remove()">' +
-        (e.credit ? '<figcaption class="gg-credit">' + esc(e.credit) + '</figcaption>' : "") + '</figure>'
+        (zeigeCredit(e.credit) ? '<figcaption class="gg-credit">' + esc(e.credit) + '</figcaption>' : "") + '</figure>'
       : "") +
   "</div>";
 }
