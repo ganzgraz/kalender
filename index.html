@@ -223,10 +223,12 @@
     margin-bottom: 14px;
   }
   @media (max-width: 560px) {
-    /* Auf schmalen Displays fällt das Bild weg - dann muss auch der Credit
-       verschwinden, sonst steht eine Bildunterschrift ohne Bild da. */
-    .gg-figur { display: none; }
-    .gg-img { display: none; }
+    /* Auf dem Handy ist die Textspalte zu schmal für ein Bild daneben. Das Bild
+       rutscht daher unter den Text und nimmt die volle Breite ein. */
+    .gg-card { flex-wrap: wrap; }
+    .gg-figur { width: 100%; flex: 1 0 100%; margin-top: 10px; }
+    .gg-img { width: 100%; height: 160px; }
+    .gg-credit { text-align: right; }
     .gg-time { min-width: 44px; font-size: 14px; }
     .gg-title { font-size: 16px; }
   }
