@@ -88,6 +88,46 @@
   }
   .gg-submit-note a { color: var(--gg-purple); font-weight: 600; }
 
+  /* ---------- Laufende Ausstellungen ("Läuft täglich") ----------
+     Mehrtägige Events stehen nur an ihrem Starttag in der Tagesliste. Ohne diesen
+     Block wäre eine Ausstellung, die zwei Monate läuft, nach der Eröffnung
+     unsichtbar. Statt einer Uhrzeit steht hier das Enddatum, weil bei einer
+     Ausstellung die Öffnungszeiten die nützliche Angabe sind. */
+  details.gg-laufend {
+    margin: 10px 0 20px; padding: 0 14px 5px;
+    border: 2px solid var(--gg-flieder); border-radius: 14px; background: #faf7ff;
+  }
+  details.gg-laufend > summary {
+    cursor: pointer; list-style: none; padding: 11px 2px 9px;
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 15px; color: var(--gg-purple);
+    text-transform: uppercase; letter-spacing: .03em;
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  }
+  details.gg-laufend > summary::-webkit-details-marker { display: none; }
+  details.gg-laufend > summary::before {
+    content: "\25B8"; color: var(--gg-orange); transition: transform .15s;
+  }
+  details.gg-laufend[open] > summary::before { transform: rotate(90deg); }
+  details.gg-laufend > summary:hover { color: var(--gg-orange); }
+  .gg-laufend-count {
+    font-family: 'Montserrat', sans-serif; font-weight: 500;
+    font-size: 12.5px; color: var(--gg-muted);
+    text-transform: none; letter-spacing: 0;
+  }
+  .gg-laufend-row {
+    display: flex; gap: 12px; padding: 9px 2px; border-top: 1px solid #e8e2f5;
+  }
+  .gg-laufend-bis {
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 13px; color: var(--gg-purple);
+    min-width: 84px; flex-shrink: 0; padding-top: 1px;
+  }
+  .gg-laufend-body { min-width: 0; }
+  .gg-laufend-titel { font-size: 14px; line-height: 1.3; }
+  .gg-laufend-meta { font-size: 12.5px; color: var(--gg-muted); margin-top: 3px; line-height: 1.4; }
+  .gg-laufend-meta strong { color: var(--gg-text); font-weight: 600; }
+
   /* ---------- Monats-Accordion (Tab "Alle") ---------- */
   details.gg-month {
     margin: 22px 0; padding: 0 14px;
@@ -231,6 +271,8 @@
     .gg-credit { text-align: right; }
     .gg-time { min-width: 44px; font-size: 14px; }
     .gg-title { font-size: 16px; }
+    .gg-laufend-row { flex-wrap: wrap; gap: 2px; }
+    .gg-laufend-bis { min-width: 0; }
   }
 </style>
 </head>
@@ -305,6 +347,9 @@ function mapEvents(liste) {
     empfehlung: e.empfehlung || "",
     source: e.source || "",
     autor: e.autor || "",
+    // Öffnungszeiten mehrtägiger Events (Mo–Fr 8–18 Uhr o. Ä.). Bleibt leer,
+    // solange das Feld in Airtable nicht existiert – der Block funktioniert auch dann.
+    oeffnungszeiten: e.oeffnungszeiten || "",
     autorFoto: "",
     autorSeite: ""
   })).filter(e => e.beginn);
@@ -367,6 +412,12 @@ function fmtDayHeading(d) {
 function fmtTime(d) {
   return new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, hour: "2-digit", minute: "2-digit" }).format(d);
 }
+function fmtDatum(d) {
+  return new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, day: "numeric", month: "long" }).format(d);
+}
+function fmtDatumKurz(d) {
+  return new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, day: "numeric", month: "short" }).format(d);
+}
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -386,6 +437,51 @@ function filtered() {
   });
 }
 
+/* Mehrtägig heißt: Das Ende fällt auf einen anderen Kalendertag als der Beginn.
+   Ausstellungen, Festivals, Messen. */
+function istMehrtaegig(e) {
+  return !!e.ende && viennaDateKey(e.ende) !== viennaDateKey(e.beginn);
+}
+
+/* Alles, was am Zieltag läuft, aber nicht an ihm beginnt: Der Starttag steht
+   ohnehin als eigener Termin in der Tagesliste (Eröffnung, Vernissage). */
+function laufende(zielTag) {
+  return allEvents.filter(e => {
+    if (!istMehrtaegig(e)) return false;
+    const start = viennaDateKey(e.beginn), ende = viennaDateKey(e.ende);
+    if (!(start < zielTag && ende >= zielTag)) return false;
+    if (state.cat && e.kategorie !== state.cat) return false;
+    if (state.tippOnly && !e.empfehlung) return false;
+    return true;
+  }).sort((a, b) => a.ende - b.ende);
+}
+
+function laufendHtml() {
+  // Im Tab "Alle" weglassen: Dort stehen sämtliche Starttermine, der Block wäre Doppelung.
+  if (state.range === "alle") return "";
+  const zielTag = state.range === "morgen" ? todayKey(1) : todayKey(0);
+  const list = laufende(zielTag);
+  if (!list.length) return "";
+  const zeilen = list.map(e => {
+    const info = [];
+    if (e.ort) info.push("<strong>" + esc(e.ort) + "</strong>");
+    if (e.oeffnungszeiten) info.push(esc(e.oeffnungszeiten));
+    if (e.eintritt) info.push("Eintritt: " + esc(e.eintritt));
+    return '<div class="gg-laufend-row">' +
+      '<span class="gg-laufend-bis">bis ' + esc(fmtDatumKurz(e.ende)) + '</span>' +
+      '<div class="gg-laufend-body">' +
+        '<div class="gg-laufend-titel">' + esc(e.titel) + '</div>' +
+        (info.length ? '<div class="gg-laufend-meta">' + info.join(" &nbsp;·&nbsp; ") + '</div>' : "") +
+      '</div>' +
+    '</div>';
+  }).join("");
+  // Bis zu drei Einträge offen zeigen, ab vier zusammengeklappt.
+  return '<details class="gg-laufend"' + (list.length <= 3 ? " open" : "") + '>' +
+    '<summary>Läuft täglich<span class="gg-laufend-count">· ' + list.length +
+    (list.length === 1 ? " laufende Veranstaltung" : " laufende Veranstaltungen") + '</span></summary>' +
+    zeilen + '</details>';
+}
+
 function render() {
   // Kategorien-Dropdown befüllen
   const cats = [...new Set(allEvents.map(e => e.kategorie).filter(Boolean))].sort();
@@ -395,11 +491,16 @@ function render() {
 
   const evs = filtered();
   const box = document.getElementById("content");
+  // Der Block steht über der Tagesliste – auch dann, wenn es an diesem Tag
+  // keinen einzelnen Termin gibt. Sonst hieße es "keine Veranstaltungen",
+  // obwohl zwei Ausstellungen offen haben.
+  const laufendBlock = laufendHtml();
   if (!evs.length) {
-    box.innerHTML = '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
+    box.innerHTML = laufendBlock +
+      '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
     return;
   }
-  let html = "";
+  let html = laufendBlock;
   if (state.range === "alle") {
     // Nächste 30 Tage detailliert, spätere Monate als zusammenklappbare Abschnitte
     const t30 = todayKey(30);
@@ -416,7 +517,7 @@ function render() {
         dayGroupsHtml(list) + '</details>';
     });
   } else {
-    html = dayGroupsHtml(evs);
+    html += dayGroupsHtml(evs);
   }
   box.innerHTML = html;
 }
@@ -458,8 +559,9 @@ function card(e, id) {
     const startTag = viennaDateKey(e.beginn);
     meta.push(endeTag === startTag
       ? "bis " + fmtTime(e.ende)
-      : "bis " + new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, day: "numeric", month: "long" }).format(e.ende));
+      : "bis " + fmtDatum(e.ende));
   }
+  if (e.oeffnungszeiten && istMehrtaegig(e)) meta.push(esc(e.oeffnungszeiten));
   const autorLabel = e.empfehlung === "Wochenhighlight" ? "Wochenhighlight von" : "Tipp von";
   // Foto aus dem Newsletter hat Vorrang; sonst hinterlegtes Portrait nach Vorname
   const autorSlug = e.autor.toLowerCase().trim().split(/\s+/)[0]
