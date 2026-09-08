@@ -88,6 +88,29 @@
   }
   .gg-submit-note a { color: var(--gg-purple); font-weight: 600; }
 
+  /* ---------- Member-Hinweis ----------
+     Lila gehalten wie der Member-Button auf ganzgraz.at, damit er sich vom orangen
+     "Event einreichen" unterscheidet: zwei verschiedene Anliegen, zwei Farben. */
+  .gg-member {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    margin: 10px 0 16px; padding: 14px 18px;
+    border: 2px solid var(--gg-purple); border-radius: 14px; background: #f5eefe;
+  }
+  .gg-member-text {
+    flex: 1; min-width: 210px;
+    font-size: 13.5px; line-height: 1.5; color: var(--gg-text);
+  }
+  .gg-member-text strong { color: var(--gg-purple); font-weight: 600; }
+  a.gg-member-btn {
+    flex-shrink: 0; display: inline-block;
+    font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 15px; letter-spacing: .02em;
+    background: var(--gg-purple); color: #fff; text-decoration: none;
+    padding: 11px 20px 9px; border-radius: 999px; white-space: nowrap;
+    transition: background .15s;
+  }
+  a.gg-member-btn:hover { background: #3d2075; }
+
   /* ---------- Laufende Ausstellungen ("Läuft täglich") ----------
      Mehrtägige Events stehen nur an ihrem Starttag in der Tagesliste. Ohne diesen
      Block wäre eine Ausstellung, die zwei Monate läuft, nach der Eröffnung
@@ -299,6 +322,10 @@
     <a class="gg-submit-mail" href="mailto:event@ganzgraz.at?subject=Event-Einreichung&body=Hallo%20ganzgraz-Team!%0A%0AWir%20m%C3%B6chten%20folgendes%20Event%20einreichen%3A%0A%0ATitel%3A%20%0ADatum%20%2B%20Uhrzeit%3A%20%0AOrt%2FVenue%3A%20%0AAdresse%3A%20%0AEintritt%3A%20%0ATicket-Link%3A%20%0AKurzbeschreibung%3A%20%0A%0ABild%20siehe%20Anhang.">Jetzt per E-Mail einreichen</a>
     <div class="gg-submit-coop">Du willst sichergehen, dass dein Event im Graz-Newsletter gelesen wird? Checke unsere <a href="https://ganzgraz.at/werben" target="_blank" rel="noopener">Kooperationsmöglichkeiten</a>.</div>
     <div class="gg-submit-note">Mit dem Absenden akzeptierst du, dass wir deine Angaben zur Prüfung und Veröffentlichung verarbeiten. Mehr dazu in der <a href="https://ganzgraz.at/datenschutzerklaerung" target="_blank" rel="noopener">Datenschutzerklärung</a>.</div>
+  </div>
+  <div class="gg-member">
+    <div class="gg-member-text"><strong>ganzgraz gehört im Gegensatz zu anderen Medien keinem Konzern.</strong> Nur durch deinen freiwilligen Beitrag gibt es diesen Event-Kalender.</div>
+    <a class="gg-member-btn" href="https://ganzgraz.at/mitmachen" target="_blank" rel="noopener">Member werden</a>
   </div>
   <div id="content"><div class="gg-empty">Events werden geladen …</div></div>
   <div class="gg-footer"><span class="goose">ganz</span><span class="goose" style="font-size:13px">graz</span> Eventkalender · Ein Event einreichen? <a href="mailto:event@ganzgraz.at" style="color:var(--gg-purple)">event@ganzgraz.at</a></div>
