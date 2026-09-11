@@ -111,21 +111,20 @@
   }
   a.gg-member-btn:hover { background: #3d2075; }
 
-  /* ---------- Laufende Ausstellungen ("Läuft täglich") ----------
-     Mehrtägige Events stehen nur an ihrem Starttag in der Tagesliste. Ohne diesen
-     Block wäre eine Ausstellung, die zwei Monate läuft, nach der Eröffnung
-     unsichtbar. Statt einer Uhrzeit steht hier das Enddatum, weil bei einer
-     Ausstellung die Öffnungszeiten die nützliche Angabe sind. */
+  /* ---------- "Läuft täglich" unter der Tagesüberschrift ----------
+     Mehrtägige Events (Ausstellungen, Festivals) stehen nur an ihrem Eröffnungstag als
+     Karte in der Liste. An jedem weiteren Tag ihrer Laufzeit erscheinen sie hier, direkt
+     unter der Tagesüberschrift – kompakt, ohne Bild, mit Enddatum statt Uhrzeit. */
   details.gg-laufend {
-    margin: 10px 0 20px; padding: 0 14px 5px;
-    border: 2px solid var(--gg-flieder); border-radius: 14px; background: #faf7ff;
+    margin: 0 0 10px; padding: 0 14px;
+    border: 1px solid var(--gg-flieder); border-radius: 12px; background: #faf7ff;
   }
   details.gg-laufend > summary {
-    cursor: pointer; list-style: none; padding: 11px 2px 9px;
+    cursor: pointer; list-style: none; padding: 9px 2px 7px;
     font-family: 'League Spartan', sans-serif; font-weight: 700;
-    font-size: 15px; color: var(--gg-purple);
-    text-transform: uppercase; letter-spacing: .03em;
-    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    font-size: 13px; color: var(--gg-purple);
+    text-transform: uppercase; letter-spacing: .04em;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
   details.gg-laufend > summary::-webkit-details-marker { display: none; }
   details.gg-laufend > summary::before {
@@ -133,18 +132,19 @@
   }
   details.gg-laufend[open] > summary::before { transform: rotate(90deg); }
   details.gg-laufend > summary:hover { color: var(--gg-orange); }
+  details.gg-laufend[open] { padding-bottom: 4px; }
   .gg-laufend-count {
     font-family: 'Montserrat', sans-serif; font-weight: 500;
-    font-size: 12.5px; color: var(--gg-muted);
+    font-size: 12px; color: var(--gg-muted);
     text-transform: none; letter-spacing: 0;
   }
   .gg-laufend-row {
-    display: flex; gap: 12px; padding: 9px 2px; border-top: 1px solid #e8e2f5;
+    display: flex; gap: 12px; padding: 7px 0; border-top: 1px solid #e8e2f5;
   }
   .gg-laufend-bis {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
     font-size: 13px; color: var(--gg-purple);
-    min-width: 128px; flex-shrink: 0; padding-top: 1px;
+    min-width: 84px; flex-shrink: 0; padding-top: 1px;
   }
   .gg-laufend-body { min-width: 0; }
   .gg-laufend-titel { font-size: 14px; line-height: 1.3; }
@@ -478,47 +478,38 @@ function istMehrtaegig(e) {
    3. Ist die Laufzeit vorbei, erscheint es nirgends mehr – der Kalender zeigt nur
       Gegenwart und Zukunft.
    "von"/"bis" sind Tagesschlüssel; bis = null heißt offen (Tab "Alle"). */
-function laufende(von, bis) {
+function laufendeAmTag(tag) {
   return allEvents.filter(e => {
     if (!istMehrtaegig(e)) return false;
     const start = viennaDateKey(e.beginn), ende = viennaDateKey(e.ende);
-    if (ende < von) return false;            // vorbei
-    if (bis && start > bis) return false;    // beginnt erst nach dem Zeitraum
-    if (start === von) return false;         // eröffnet heute: Tagestermin, kein Blockeintrag
+    if (!(start < tag && ende >= tag)) return false;   // läuft an diesem Tag, eröffnet nicht erst
     if (state.cat && e.kategorie !== state.cat) return false;
     if (state.tippOnly && !e.empfehlung) return false;
     return true;
-  }).sort((a, b) => a.beginn - b.beginn);
+  }).sort((a, b) => a.ende - b.ende);
 }
 
-function laufendHtml() {
-  const t0 = todayKey(0);
-  let von = t0, bis = null;
-  if (state.range === "heute") bis = t0;
-  else if (state.range === "morgen") { von = todayKey(1); bis = von; }
-  else if (state.range === "7") bis = todayKey(7);
-  const list = laufende(von, bis);
+/* Der "Läuft täglich"-Abschnitt UNTER der Tagesüberschrift: alles, was an diesem Tag
+   offen hat, aber nicht an ihm eröffnet (die Eröffnung ist eine eigene Karte). */
+function laufendTagHtml(tag) {
+  const list = laufendeAmTag(tag);
   if (!list.length) return "";
   const zeilen = list.map(e => {
     const info = [];
     if (e.ort) info.push("<strong>" + esc(e.ort) + "</strong>");
     if (e.oeffnungszeiten) info.push(esc(e.oeffnungszeiten));
     if (e.eintritt) info.push("Eintritt: " + esc(e.eintritt));
-    // Läuft es schon: nur das Ende. Kommt es erst: der ganze Zeitraum.
-    const zeitraum = viennaDateKey(e.beginn) <= t0
-      ? "bis " + fmtDatumKurz(e.ende)
-      : fmtDatumKurz(e.beginn) + " – " + fmtDatumKurz(e.ende);
     return '<div class="gg-laufend-row">' +
-      '<span class="gg-laufend-bis">' + esc(zeitraum) + '</span>' +
+      '<span class="gg-laufend-bis">bis ' + esc(fmtDatumKurz(e.ende)) + '</span>' +
       '<div class="gg-laufend-body">' +
         '<div class="gg-laufend-titel">' + esc(e.titel) + '</div>' +
         (info.length ? '<div class="gg-laufend-meta">' + info.join(" &nbsp;·&nbsp; ") + '</div>' : "") +
       '</div>' +
     '</div>';
   }).join("");
-  // Bis zu drei Einträge offen zeigen, ab vier zusammengeklappt.
-  return '<details class="gg-laufend"' + (list.length <= 3 ? " open" : "") + '>' +
-    '<summary>Läuft täglich<span class="gg-laufend-count">· ' + list.length +
+  // Immer zugeklappt (Redaktionsvorgabe): eine Zeile pro Tag, Details auf Klick.
+  return '<details class="gg-laufend"><summary>Läuft täglich' +
+    '<span class="gg-laufend-count">· ' + list.length +
     (list.length === 1 ? " Veranstaltung" : " Veranstaltungen") + '</span></summary>' +
     zeilen + '</details>';
 }
@@ -532,16 +523,21 @@ function render() {
 
   const evs = filtered();
   const box = document.getElementById("content");
-  // Der Block steht über der Tagesliste – auch dann, wenn es an diesem Tag
-  // keinen einzelnen Termin gibt. Sonst hieße es "keine Veranstaltungen",
-  // obwohl zwei Ausstellungen offen haben.
-  const laufendBlock = laufendHtml();
   if (!evs.length) {
-    box.innerHTML = laufendBlock +
-      '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
+    // Kein Einzeltermin – aber vielleicht laufen Ausstellungen. Bei Heute/Morgen den
+    // Tag trotzdem mit seinem "Läuft täglich"-Abschnitt zeigen, statt "keine
+    // Veranstaltungen" zu behaupten.
+    const tag = state.range === "morgen" ? todayKey(1) : todayKey(0);
+    const laufend = (state.range === "heute" || state.range === "morgen") ? laufendTagHtml(tag) : "";
+    if (laufend) {
+      const d = new Date(); if (state.range === "morgen") d.setDate(d.getDate() + 1);
+      box.innerHTML = '<div class="gg-day">' + fmtDayHeading(d) + "</div>" + laufend;
+      return;
+    }
+    box.innerHTML = '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
     return;
   }
-  let html = laufendBlock;
+  let html = "";
   if (state.range === "alle") {
     // Nächste 30 Tage detailliert, spätere Monate als zusammenklappbare Abschnitte
     const t30 = todayKey(30);
@@ -573,6 +569,8 @@ function dayGroupsHtml(evs) {
     // Wochenhighlight/Tipp zuerst
     list.sort((a, b) => (b.empfehlung === "Wochenhighlight") - (a.empfehlung === "Wochenhighlight") || a.beginn - b.beginn);
     html += '<div class="gg-day">' + fmtDayHeading(list[0].beginn) + "</div>";
+    // Erst, was an diesem Tag ohnehin offen hat – dann die Termine des Tages.
+    html += laufendTagHtml(k);
     list.forEach((e, i) => { html += card(e, k + "-" + i); });
   });
   return html;
