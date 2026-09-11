@@ -111,7 +111,7 @@
   }
   a.gg-member-btn:hover { background: #3d2075; }
 
-  /* ---------- "Läuft täglich" unter der Tagesüberschrift ----------
+  /* ---------- "Mehrtägig" unter der Tagesüberschrift ----------
      Mehrtägige Events (Ausstellungen, Festivals) stehen nur an ihrem Eröffnungstag als
      Karte in der Liste. An jedem weiteren Tag ihrer Laufzeit erscheinen sie hier, direkt
      unter der Tagesüberschrift – kompakt, ohne Bild, mit Enddatum statt Uhrzeit. */
@@ -471,7 +471,7 @@ function istMehrtaegig(e) {
 }
 
 /* Redaktionsvorgabe für Dauerevents (Ausstellungen, Festivals):
-   1. Im Block "Läuft täglich" steht jedes Dauerevent, dessen Laufzeit den gezeigten
+   1. Im Block "Mehrtägig" steht jedes Dauerevent, dessen Laufzeit den gezeigten
       Zeitraum berührt – laufende UND erst kommende.
    2. Ausnahme: Eröffnet es genau am ersten gezeigten Tag, steht es an diesem Tag
       nur als Tagestermin in der Liste, nicht im Block.
@@ -489,7 +489,7 @@ function laufendeAmTag(tag) {
   }).sort((a, b) => a.ende - b.ende);
 }
 
-/* Der "Läuft täglich"-Abschnitt UNTER der Tagesüberschrift: alles, was an diesem Tag
+/* Der "Mehrtägig"-Abschnitt UNTER der Tagesüberschrift: alles, was an diesem Tag
    offen hat, aber nicht an ihm eröffnet (die Eröffnung ist eine eigene Karte). */
 function laufendTagHtml(tag) {
   const list = laufendeAmTag(tag);
@@ -508,7 +508,7 @@ function laufendTagHtml(tag) {
     '</div>';
   }).join("");
   // Immer zugeklappt (Redaktionsvorgabe): eine Zeile pro Tag, Details auf Klick.
-  return '<details class="gg-laufend"><summary>Läuft täglich' +
+  return '<details class="gg-laufend"><summary>Mehrtägig' +
     '<span class="gg-laufend-count">· ' + list.length +
     (list.length === 1 ? " Veranstaltung" : " Veranstaltungen") + '</span></summary>' +
     zeilen + '</details>';
@@ -525,7 +525,7 @@ function render() {
   const box = document.getElementById("content");
   if (!evs.length) {
     // Kein Einzeltermin – aber vielleicht laufen Ausstellungen. Bei Heute/Morgen den
-    // Tag trotzdem mit seinem "Läuft täglich"-Abschnitt zeigen, statt "keine
+    // Tag trotzdem mit seinem "Mehrtägig"-Abschnitt zeigen, statt "keine
     // Veranstaltungen" zu behaupten.
     const tag = state.range === "morgen" ? todayKey(1) : todayKey(0);
     const laufend = (state.range === "heute" || state.range === "morgen") ? laufendTagHtml(tag) : "";
