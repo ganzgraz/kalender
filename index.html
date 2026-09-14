@@ -222,13 +222,6 @@
     background: var(--gg-flieder); color: var(--gg-purple);
     padding: 3px 9px; border-radius: 999px; white-space: nowrap;
   }
-  /* Marke am Starttag eines Dauerevents: Diese Karte ist die Eröffnung. */
-  .gg-eroeffnung {
-    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 11px;
-    letter-spacing: .04em; text-transform: uppercase;
-    border: 2px solid var(--gg-purple); color: var(--gg-purple); background: #fff;
-    padding: 3px 9px 2px; border-radius: 999px; white-space: nowrap;
-  }
   .gg-autor {
     display: flex; align-items: center; gap: 8px;
     margin-top: 8px; padding: 6px 10px 6px 6px;
@@ -478,10 +471,12 @@ function istMehrtaegig(e) {
 }
 
 /* Bei Dauerevents ist der Datensatz Eröffnung UND Ausstellung zugleich. Ein Titel wie
-   "Ausstellungseröffnung: Katherine Bernhardt – …" stimmt nur am ersten Tag. Deshalb
-   wird der Zusatz entfernt; die Eröffnung bekommt am Starttag eine eigene Marke. */
+   "Ausstellungseröffnung: Katherine Bernhardt – …" stimmt am Eröffnungstag (dort steht
+   er unverändert auf der Karte), aber nicht mehr ab dem zweiten Tag. Nur in der
+   Mehrtägig-Zeile wird der Zusatz deshalb ausgeblendet. Greift die Regel einmal nicht,
+   steht ein Wort zu viel – kosmetisch, nicht falsch. */
 function ausstellungsTitel(t) {
-  return String(t || "").replace(/^\s*(Ausstellungseröffnung|Eröffnung|Vernissage|Opening|Festivaleröffnung)\s*[:–—-]\s*/i, "");
+  return String(t || "").replace(/^\s*(Ausstellungseröffnung|Festivaleröffnung|Eröffnung|Vernissage|Opening)(\s*[:–—-]\s*|\s+)/i, "");
 }
 
 /* Redaktionsvorgabe für Dauerevents (Ausstellungen, Festivals):
@@ -637,15 +632,10 @@ function card(e, id) {
   const links = [];
   if (e.ticket) links.push('<a href="' + esc(e.ticket) + '" target="_blank" rel="noopener">Tickets</a>');
   if (e.source) links.push('<a href="' + esc(e.source) + '" target="_blank" rel="noopener">Mehr Infos</a>');
-  // Dauerevent: Die Karte steht nur am Starttag, also ist sie die Eröffnung. Das sagt
-  // eine eigene Marke – der Titel bleibt der Name der Ausstellung.
-  const mehrtaegig = istMehrtaegig(e);
-  const titel = mehrtaegig ? ausstellungsTitel(e.titel) : e.titel;
-  const eroeffnung = mehrtaegig ? '<span class="gg-eroeffnung">Eröffnung</span>' : "";
   return '<div class="' + cls + '">' +
     '<div class="gg-time">' + fmtTime(e.beginn) + "</div>" +
     '<div class="gg-body">' +
-      '<div class="gg-title-row"><span class="gg-title">' + esc(titel) + "</span>" + eroeffnung + badge +
+      '<div class="gg-title-row"><span class="gg-title">' + esc(e.titel) + "</span>" + badge +
         (e.kategorie ? '<span class="gg-cat">' + esc(e.kategorie) + "</span>" : "") + "</div>" +
       (meta.length ? '<div class="gg-meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>" : "") +
       autorBox +
