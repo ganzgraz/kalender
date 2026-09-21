@@ -629,9 +629,12 @@ function card(e, id) {
     : "";
   const desc = e.beschreibung ? '<div class="gg-desc clamp" id="d-' + id + '">' + esc(e.beschreibung) + '</div>' +
     (e.beschreibung.length > 140 ? '<button class="gg-more" onclick="toggleDesc(\'' + id + '\', this)">mehr anzeigen</button>' : "") : "";
+  // "www.beispiel.at" ohne https:// würde der Browser als Unterseite des Kalenders
+  // deuten und ins Leere laufen – deshalb hier absichern.
+  const absolut = u => /^(https?:\/\/|mailto:|tel:)/i.test(u) ? u : "https://" + u;
   const links = [];
-  if (e.ticket) links.push('<a href="' + esc(e.ticket) + '" target="_blank" rel="noopener">Tickets</a>');
-  if (e.source) links.push('<a href="' + esc(e.source) + '" target="_blank" rel="noopener">Mehr Infos</a>');
+  if (e.ticket) links.push('<a href="' + esc(absolut(e.ticket)) + '" target="_blank" rel="noopener">Tickets</a>');
+  if (e.source) links.push('<a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener">Mehr Infos</a>');
   return '<div class="' + cls + '">' +
     '<div class="gg-time">' + fmtTime(e.beginn) + "</div>" +
     '<div class="gg-body">' +
