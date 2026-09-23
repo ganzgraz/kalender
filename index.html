@@ -810,7 +810,7 @@ function kalenderZeichnen() {
     html += '<button type="button" class="' + cls.join(" ") + '" data-tag="' + k + '"' +
       (k < t0 ? " disabled" : "") + '>' + d + '</button>';
   }
-  html += '</div><div class="gg-cal-legende">Punkt = an diesem Tag gibt es Termine</div>';
+  html += '</div><div class="gg-cal-legende">Punkt = Tagestermine vorhanden (Mehrtägiges nicht mitgezählt)</div>';
   calBox.innerHTML = html;
 }
 
