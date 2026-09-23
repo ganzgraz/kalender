@@ -50,6 +50,27 @@
   }
   .gg-select:focus { outline: 2px solid var(--gg-purple); }
 
+  /* ---------- Datumswahl und Suche ----------
+     Das Datumsfeld liegt unsichtbar über dem Knopf: Ein Klick öffnet den Kalender des
+     Geräts (am Handy der eingebaute Datumswähler). */
+  .gg-date-wrap { position: relative; display: inline-flex; }
+  .gg-date-input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; pointer-events: none; border: 0; padding: 0;
+  }
+  .gg-search {
+    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border-radius: 999px; border: 2px solid var(--gg-flieder);
+    color: var(--gg-text); background: #fff; flex: 0 1 190px; min-width: 140px;
+  }
+  .gg-search::placeholder { color: var(--gg-muted); }
+  .gg-search:focus { outline: none; border-color: var(--gg-purple); }
+  .gg-search-info { font-size: 13px; color: var(--gg-muted); margin: 6px 0 4px; }
+  .gg-search-info button {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font: inherit; font-weight: 600; color: var(--gg-purple);
+  }
+
   /* ---------- Event einreichen ---------- */
   .gg-submit-btn {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
@@ -306,10 +327,15 @@
     <button class="gg-tab" data-range="morgen">Morgen</button>
     <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
     <button class="gg-tab" data-range="alle">Alle</button>
+    <span class="gg-date-wrap">
+      <button class="gg-tab" id="dateTab" type="button">Datum wählen</button>
+      <input type="date" id="dateInput" class="gg-date-input" aria-label="Datum wählen" tabindex="-1">
+    </span>
     <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">Unsere Tipps</button>
     <select class="gg-select" id="catSelect">
       <option value="">Alle Kategorien</option>
     </select>
+    <input type="search" id="searchInput" class="gg-search" placeholder="Suchen …" aria-label="Events durchsuchen" autocomplete="off">
     <button class="gg-submit-btn" id="submitToggle" type="button">Event einreichen</button>
   </div>
   <div class="gg-submit-body" id="submitBox" hidden>
@@ -348,7 +374,7 @@ const CONFIG = {
 const GOOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21c4.5 0 7.5-2.5 7.5-6.5V9.2c0-.5.2-.9.6-1.2l1.6-1.2c.4-.3.3-.9-.2-1l-2.1-.5C15.9 3.9 14.7 3 13.4 3 11.8 3 10.5 4.3 10.5 6v5.5c0 2.5-1.5 4-4 4H5c0 3 1.5 5.5 4 5.5z"/><circle cx="14" cy="6" r="0.4" fill="currentColor"/></svg>';
 
 let allEvents = [];
-let state = { range: "heute", cat: "", tippOnly: false };
+let state = { range: "heute", cat: "", tippOnly: false, tag: "", q: "" };
 
 /* ---------- Daten laden ----------
    Reihenfolge fürs schnelle Anzeigen:
@@ -450,16 +476,43 @@ function esc(s) {
 }
 
 /* ---------- Filtern & Rendern ---------- */
+/* ---------- Textsuche ----------
+   Groß/klein, Akzente und ß egal; mehrere Wörter müssen alle vorkommen
+   ("poetry orpheum" findet nur Slams im Orpheum). */
+function sucheNorm(s) {
+  // ä/ö/ü werden zu ae/oe/ue, damit "eroeffnung" und "eröffnung" dasselbe finden;
+  // übrige Akzente (é, č …) fallen weg.
+  return String(s || "").toLowerCase()
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+function passtSuche(e) {
+  if (!state.q) return true;
+  const text = sucheNorm([e.titel, e.beschreibung, e.ort, e.adresse, e.kategorie, e.autor].join(" "));
+  // Zusätzlich ohne Leerzeichen vergleichen: "grazmuseum" findet "Graz Museum".
+  const ohneLeer = text.replace(/\s+/g, "");
+  return sucheNorm(state.q).split(/\s+/).filter(Boolean)
+    .every(w => text.indexOf(w) > -1 || ohneLeer.indexOf(w) > -1);
+}
+
 function filtered() {
   const t0 = todayKey(0), t1 = todayKey(1), t7 = todayKey(7);
   return allEvents.filter(e => {
     const k = viennaDateKey(e.beginn);
-    if (state.range === "heute" && k !== t0) return false;
-    if (state.range === "morgen" && k !== t1) return false;
-    if (state.range === "7" && (k < t0 || k > t7)) return false;
-    if (state.range === "alle" && k < t0) return false;
+    if (state.q) {
+      // Während einer Suche zählt der ganze kommende Zeitraum – sonst fände man im
+      // voreingestellten Tab "Heute" fast nie etwas.
+      if (k < t0) return false;
+    } else {
+      if (state.range === "heute" && k !== t0) return false;
+      if (state.range === "morgen" && k !== t1) return false;
+      if (state.range === "7" && (k < t0 || k > t7)) return false;
+      if (state.range === "alle" && k < t0) return false;
+      if (state.range === "tag" && k !== state.tag) return false;
+    }
     if (state.cat && e.kategorie !== state.cat) return false;
     if (state.tippOnly && !e.empfehlung) return false;
+    if (!passtSuche(e)) return false;
     return true;
   });
 }
@@ -494,6 +547,7 @@ function laufendeAmTag(tag) {
     if (!(start < tag && ende >= tag)) return false;   // läuft an diesem Tag, eröffnet nicht erst
     if (state.cat && e.kategorie !== state.cat) return false;
     if (state.tippOnly && !e.empfehlung) return false;
+    if (!passtSuche(e)) return false;
     return true;
   }).sort((a, b) => a.ende - b.ende);
 }
@@ -532,22 +586,43 @@ function render() {
 
   const evs = filtered();
   const box = document.getElementById("content");
+  const t0 = todayKey(0);
+  // Einzeltag-Ansichten: Heute, Morgen, gewähltes Datum
+  const einzelTag = state.q ? "" :
+    state.range === "heute" ? t0 :
+    state.range === "morgen" ? todayKey(1) :
+    state.range === "tag" ? state.tag : "";
+  // Hinweiszeile über den Ergebnissen einer Suche
+  const suchInfo = state.q
+    ? '<div class="gg-search-info">' + evs.length + ' Treffer für „' + esc(state.q) +
+      '“ in allen kommenden Events · <button type="button" onclick="sucheLeeren()">Suche löschen</button></div>'
+    : "";
+
   if (!evs.length) {
-    // Kein Einzeltermin – aber vielleicht laufen Ausstellungen. Bei Heute/Morgen den
-    // Tag trotzdem mit seinem "Mehrtägig"-Abschnitt zeigen, statt "keine
-    // Veranstaltungen" zu behaupten.
-    const tag = state.range === "morgen" ? todayKey(1) : todayKey(0);
-    const laufend = (state.range === "heute" || state.range === "morgen") ? laufendTagHtml(tag) : "";
+    // Kein Einzeltermin – aber vielleicht laufen Ausstellungen. Bei Einzeltag-Ansichten
+    // den Tag trotzdem mit seinem "Mehrtägig"-Abschnitt zeigen, statt "keine
+    // Veranstaltungen" zu behaupten. Bei einer Suche: laufende Treffer unter heute.
+    const tag = einzelTag || (state.q ? t0 : "");
+    const laufend = tag ? laufendTagHtml(tag) : "";
     if (laufend) {
-      const d = new Date(); if (state.range === "morgen") d.setDate(d.getDate() + 1);
-      box.innerHTML = '<div class="gg-day">' + fmtDayHeading(d) + "</div>" + laufend;
+      box.innerHTML = suchInfo + '<div class="gg-day">' + fmtDayHeading(new Date(tag + "T12:00:00")) + "</div>" + laufend;
       return;
     }
-    box.innerHTML = '<div class="gg-empty">Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!</div>';
+    box.innerHTML = suchInfo + '<div class="gg-empty">' + (state.q
+      ? "Nichts gefunden. Probier ein anderes Stichwort – oder schick uns dein Event an event@ganzgraz.at!"
+      : "Keine Veranstaltungen in diesem Zeitraum.<br>Schau bald wieder vorbei — oder schick uns dein Event an event@ganzgraz.at!") + '</div>';
     return;
   }
-  let html = "";
-  if (state.range === "alle") {
+  let html = suchInfo;
+  if (state.q) {
+    // Suchergebnisse flach nach Tagen, ohne Monatsklappen – man will sie sofort sehen.
+    // Läuft ein Treffer bereits (Eröffnung vorbei), steht er unter heute.
+    if (!evs.some(e => viennaDateKey(e.beginn) === t0)) {
+      const laufendHeute = laufendTagHtml(t0);
+      if (laufendHeute) html += '<div class="gg-day">' + fmtDayHeading(new Date(t0 + "T12:00:00")) + "</div>" + laufendHeute;
+    }
+    html += dayGroupsHtml(evs);
+  } else if (state.range === "alle") {
     // Nächste 30 Tage detailliert, spätere Monate als zusammenklappbare Abschnitte
     const t30 = todayKey(30);
     const near = evs.filter(e => viennaDateKey(e.beginn) <= t30);
@@ -659,12 +734,59 @@ function toggleDesc(id, btn) {
 }
 
 /* ---------- Events der Filterleiste ---------- */
-document.querySelectorAll(".gg-tab[data-range]").forEach(b => b.addEventListener("click", () => {
+const dateTab = document.getElementById("dateTab");
+const dateInput = document.getElementById("dateInput");
+const searchInput = document.getElementById("searchInput");
+
+function tabsZuruecksetzen() {
   document.querySelectorAll(".gg-tab[data-range]").forEach(x => x.classList.remove("active"));
+  dateTab.classList.remove("active");
+  dateTab.textContent = "Datum wählen";
+}
+
+document.querySelectorAll(".gg-tab[data-range]").forEach(b => b.addEventListener("click", () => {
+  tabsZuruecksetzen();
   b.classList.add("active");
   state.range = b.dataset.range;
+  state.tag = "";
   render();
 }));
+
+// Datumswahl: Vergangene Tage sind nicht wählbar – der Kalender zeigt nur Gegenwart
+// und Zukunft. showPicker() öffnet den Kalender des Geräts; ältere Browser ohne
+// showPicker bekommen das (unsichtbare) Feld direkt unter den Finger gelegt.
+dateInput.min = todayKey(0);
+if (typeof dateInput.showPicker === "function") {
+  dateTab.addEventListener("click", () => {
+    dateInput.min = todayKey(0);
+    try { dateInput.showPicker(); } catch (err) { dateInput.focus(); }
+  });
+} else {
+  dateInput.style.pointerEvents = "auto";
+}
+dateInput.addEventListener("change", () => {
+  const v = dateInput.value;
+  if (!v || v < todayKey(0)) return;
+  tabsZuruecksetzen();
+  dateTab.classList.add("active");
+  dateTab.textContent = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "numeric", month: "short" })
+    .format(new Date(v + "T12:00:00"));
+  state.range = "tag";
+  state.tag = v;
+  render();
+});
+
+// Textsuche, leicht verzögert, damit nicht bei jedem Tastendruck neu gezeichnet wird
+let suchTimer = null;
+searchInput.addEventListener("input", () => {
+  clearTimeout(suchTimer);
+  suchTimer = setTimeout(() => { state.q = searchInput.value.trim(); render(); }, 180);
+});
+function sucheLeeren() {
+  searchInput.value = "";
+  state.q = "";
+  render();
+}
 document.getElementById("tippToggle").addEventListener("click", function () {
   state.tippOnly = !state.tippOnly;
   this.classList.toggle("active", state.tippOnly);
