@@ -50,14 +50,43 @@
   }
   .gg-select:focus { outline: 2px solid var(--gg-purple); }
 
-  /* ---------- Datumswahl und Suche ----------
-     Das Datumsfeld liegt unsichtbar über dem Knopf: Ein Klick öffnet den Kalender des
-     Geräts (am Handy der eingebaute Datumswähler). */
-  .gg-date-wrap { position: relative; display: inline-flex; }
-  .gg-date-input {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    opacity: 0; pointer-events: none; border: 0; padding: 0;
+  /* ---------- Datumswahl (eigener Monatskalender) und Suche ----------
+     Bewusst kein <input type="date">: Aus dem eingebetteten iframe auf ganzgraz.at
+     lässt sich der Datumswähler des Browsers nicht zuverlässig öffnen. Dieser
+     Kalender funktioniert überall gleich und zeigt, an welchen Tagen etwas los ist. */
+  .gg-cal {
+    margin: 4px 0 12px; padding: 12px 14px; max-width: 330px;
+    border: 2px solid var(--gg-flieder); border-radius: 14px; background: #fff;
   }
+  .gg-cal-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 15px;
+    color: var(--gg-purple); text-transform: uppercase; letter-spacing: .02em;
+  }
+  .gg-cal-nav {
+    width: 32px; height: 32px; border-radius: 999px; cursor: pointer;
+    border: 2px solid var(--gg-flieder); background: #fff; color: var(--gg-purple);
+    font-size: 17px; line-height: 1;
+  }
+  .gg-cal-nav:hover:not(:disabled) { background: var(--gg-flieder); }
+  .gg-cal-nav:disabled { opacity: .3; cursor: default; }
+  .gg-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .gg-cal-wd { font-size: 11px; font-weight: 600; color: var(--gg-muted); text-align: center; padding: 2px 0 4px; }
+  .gg-cal-day {
+    position: relative; border: none; border-radius: 8px; padding: 8px 0 9px;
+    background: #faf7ff; color: var(--gg-text); cursor: pointer;
+    font-family: 'Montserrat', sans-serif; font-size: 13px;
+  }
+  .gg-cal-day:hover:not(:disabled) { background: var(--gg-flieder); }
+  .gg-cal-day:disabled { background: none; color: #c9c9c9; cursor: default; }
+  .gg-cal-day.heute { box-shadow: inset 0 0 0 2px var(--gg-orange); }
+  .gg-cal-day.gewaehlt { background: var(--gg-purple); color: #fff; }
+  .gg-cal-day.hat::after {
+    content: ""; position: absolute; left: 50%; bottom: 3px;
+    width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--gg-orange);
+  }
+  .gg-cal-day.gewaehlt.hat::after { background: #fff; }
+  .gg-cal-legende { margin-top: 8px; font-size: 11.5px; color: var(--gg-muted); }
   .gg-search {
     font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 500;
     padding: 8px 14px; border-radius: 999px; border: 2px solid var(--gg-flieder);
@@ -327,10 +356,7 @@
     <button class="gg-tab" data-range="morgen">Morgen</button>
     <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
     <button class="gg-tab" data-range="alle">Alle</button>
-    <span class="gg-date-wrap">
-      <button class="gg-tab" id="dateTab" type="button">Datum wählen</button>
-      <input type="date" id="dateInput" class="gg-date-input" aria-label="Datum wählen" tabindex="-1">
-    </span>
+    <button class="gg-tab" id="dateTab" type="button" aria-expanded="false" aria-controls="calBox">Datum wählen</button>
     <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">Unsere Tipps</button>
     <select class="gg-select" id="catSelect">
       <option value="">Alle Kategorien</option>
@@ -338,6 +364,7 @@
     <input type="search" id="searchInput" class="gg-search" placeholder="Suchen …" aria-label="Events durchsuchen" autocomplete="off">
     <button class="gg-submit-btn" id="submitToggle" type="button">Event einreichen</button>
   </div>
+  <div class="gg-cal" id="calBox" hidden></div>
   <div class="gg-submit-body" id="submitBox" hidden>
     <strong>Du veranstaltest etwas in Graz?</strong> Schick uns dein Event – so funktioniert's:
     <ol>
@@ -735,7 +762,7 @@ function toggleDesc(id, btn) {
 
 /* ---------- Events der Filterleiste ---------- */
 const dateTab = document.getElementById("dateTab");
-const dateInput = document.getElementById("dateInput");
+const calBox = document.getElementById("calBox");
 const searchInput = document.getElementById("searchInput");
 
 function tabsZuruecksetzen() {
@@ -746,34 +773,95 @@ function tabsZuruecksetzen() {
 
 document.querySelectorAll(".gg-tab[data-range]").forEach(b => b.addEventListener("click", () => {
   tabsZuruecksetzen();
+  kalenderSchliessen();
   b.classList.add("active");
   state.range = b.dataset.range;
   state.tag = "";
   render();
 }));
 
-// Datumswahl: Vergangene Tage sind nicht wählbar – der Kalender zeigt nur Gegenwart
-// und Zukunft. showPicker() öffnet den Kalender des Geräts; ältere Browser ohne
-// showPicker bekommen das (unsichtbare) Feld direkt unter den Finger gelegt.
-dateInput.min = todayKey(0);
-if (typeof dateInput.showPicker === "function") {
-  dateTab.addEventListener("click", () => {
-    dateInput.min = todayKey(0);
-    try { dateInput.showPicker(); } catch (err) { dateInput.focus(); }
-  });
-} else {
-  dateInput.style.pointerEvents = "auto";
+/* ---------- Datumswahl: eigener Monatskalender ----------
+   Vergangene Tage sind gesperrt (der Kalender zeigt nur Gegenwart und Zukunft).
+   Ein oranger Punkt markiert Tage, an denen ein Termin beginnt. */
+let calJahr = 0, calMonat = 0;   // angezeigter Monat (Monat 0–11)
+
+function kalenderZeichnen() {
+  const t0 = todayKey(0);
+  const monatKey = calJahr + "-" + String(calMonat + 1).padStart(2, "0");
+  const ersterWt = (new Date(Date.UTC(calJahr, calMonat, 1)).getUTCDay() + 6) % 7;  // Mo = 0
+  const tage = new Date(Date.UTC(calJahr, calMonat + 1, 0)).getUTCDate();
+  const mitTermin = new Set(allEvents.map(e => viennaDateKey(e.beginn)));
+  const titel = new Intl.DateTimeFormat("de-AT", { month: "long", year: "numeric", timeZone: "UTC" })
+    .format(new Date(Date.UTC(calJahr, calMonat, 1)));
+  let html = '<div class="gg-cal-head">' +
+    '<button type="button" class="gg-cal-nav" data-nav="-1" aria-label="Voriger Monat"' +
+      (monatKey <= t0.slice(0, 7) ? " disabled" : "") + '>‹</button>' +
+    '<span>' + esc(titel) + '</span>' +
+    '<button type="button" class="gg-cal-nav" data-nav="1" aria-label="Nächster Monat">›</button>' +
+  '</div><div class="gg-cal-grid">' +
+    ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map(w => '<span class="gg-cal-wd">' + w + '</span>').join("");
+  for (let i = 0; i < ersterWt; i++) html += "<span></span>";
+  for (let d = 1; d <= tage; d++) {
+    const k = monatKey + "-" + String(d).padStart(2, "0");
+    const cls = ["gg-cal-day"];
+    if (k === t0) cls.push("heute");
+    if (k === state.tag) cls.push("gewaehlt");
+    if (mitTermin.has(k)) cls.push("hat");
+    html += '<button type="button" class="' + cls.join(" ") + '" data-tag="' + k + '"' +
+      (k < t0 ? " disabled" : "") + '>' + d + '</button>';
+  }
+  html += '</div><div class="gg-cal-legende">Punkt = an diesem Tag beginnt ein Termin</div>';
+  calBox.innerHTML = html;
 }
-dateInput.addEventListener("change", () => {
-  const v = dateInput.value;
-  if (!v || v < todayKey(0)) return;
+
+function kalenderOeffnen() {
+  const basis = state.tag || todayKey(0);
+  calJahr = Number(basis.slice(0, 4));
+  calMonat = Number(basis.slice(5, 7)) - 1;
+  kalenderZeichnen();
+  calBox.hidden = false;
+  dateTab.setAttribute("aria-expanded", "true");
+}
+function kalenderSchliessen() {
+  calBox.hidden = true;
+  dateTab.setAttribute("aria-expanded", "false");
+}
+
+dateTab.addEventListener("click", () => {
+  if (calBox.hidden) kalenderOeffnen(); else kalenderSchliessen();
+});
+
+calBox.addEventListener("click", ev => {
+  // Nicht bis zum Dokument durchreichen: Beim Blättern wird der Kalender neu gezeichnet,
+  // der geklickte Knopf ist danach nicht mehr im DOM – der "Klick außerhalb"-Handler
+  // würde den Kalender sonst sofort wieder schließen.
+  ev.stopPropagation();
+  const nav = ev.target.closest("[data-nav]");
+  if (nav && !nav.disabled) {
+    calMonat += Number(nav.dataset.nav);
+    if (calMonat < 0) { calMonat = 11; calJahr--; }
+    if (calMonat > 11) { calMonat = 0; calJahr++; }
+    kalenderZeichnen();
+    return;
+  }
+  const tagBtn = ev.target.closest("[data-tag]");
+  if (!tagBtn || tagBtn.disabled) return;
+  const v = tagBtn.dataset.tag;
   tabsZuruecksetzen();
   dateTab.classList.add("active");
   dateTab.textContent = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "numeric", month: "short" })
     .format(new Date(v + "T12:00:00"));
   state.range = "tag";
   state.tag = v;
+  kalenderSchliessen();
   render();
+});
+
+// Klick außerhalb schließt den Kalender
+document.addEventListener("click", ev => {
+  if (calBox.hidden) return;
+  if (calBox.contains(ev.target) || dateTab.contains(ev.target)) return;
+  kalenderSchliessen();
 });
 
 // Textsuche, leicht verzögert, damit nicht bei jedem Tastendruck neu gezeichnet wird
