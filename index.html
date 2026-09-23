@@ -93,9 +93,13 @@
     color: var(--gg-text); background: #fff; flex: 0 1 190px; min-width: 140px;
   }
   .gg-search::placeholder { color: var(--gg-muted); }
-  /* Suche und Datumswahl bleiben als Paar zusammen – auch wenn die Leiste umbricht. */
-  .gg-finden { display: inline-flex; align-items: center; gap: 8px; flex: 1 1 300px; min-width: 0; }
-  .gg-finden .gg-search { flex: 1 1 auto; min-width: 0; }
+  /* Filterblock: so breit wie die obere Zeile (Tabs). Die untere Zeile streckt sich
+     auf genau diese Breite, das Suchfeld füllt den Rest – bündig mit "Unsere Tipps". */
+  .gg-filterblock { display: inline-flex; flex-direction: column; gap: 8px; max-width: 100%; }
+  .gg-filterzeile { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  /* width: 0 + flex-grow: Das Suchfeld bestimmt die Blockbreite nicht mit, sondern
+     füllt nur, was die obere Zeile vorgibt. */
+  .gg-filterzeile .gg-search { flex: 1 1 0; width: 0; min-width: 110px; }
   .gg-date-btn { white-space: nowrap; flex-shrink: 0; }
   .gg-date-btn::after { content: " \25BE"; font-size: 12px; }
   .gg-search:focus { outline: none; border-color: var(--gg-purple); }
@@ -263,6 +267,8 @@
   .gg-title {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
     font-size: 17px; line-height: 1.25; color: var(--gg-text);
+    /* Sehr lange Wörter (Neonfarbblend…gefahr) dürfen umbrechen statt über den Rand zu ragen */
+    overflow-wrap: anywhere;
   }
   .gg-badge {
     display: inline-flex; align-items: center; gap: 5px;
@@ -357,18 +363,24 @@
 <body>
 <div class="gg-wrap">
   <div class="gg-filters" id="filters">
-    <button class="gg-tab active" data-range="heute">Heute</button>
-    <button class="gg-tab" data-range="morgen">Morgen</button>
-    <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
-    <button class="gg-tab" data-range="alle">Alle</button>
-    <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">Unsere Tipps</button>
-    <select class="gg-select" id="catSelect">
-      <option value="">Alle Kategorien</option>
-    </select>
-    <span class="gg-finden">
-      <button class="gg-tab gg-date-btn" id="dateTab" type="button" aria-expanded="false" aria-controls="calBox">Datum wählen</button>
-      <input type="search" id="searchInput" class="gg-search" placeholder="Suchen …" aria-label="Events durchsuchen" autocomplete="off">
-    </span>
+    <!-- Zwei Zeilen in einem Block, der so breit ist wie die obere Zeile: Das Suchfeld
+         füllt die untere Zeile genau bis zum Ende der oberen, nicht bis zum Rand. -->
+    <div class="gg-filterblock">
+      <div class="gg-filterzeile">
+        <button class="gg-tab active" data-range="heute">Heute</button>
+        <button class="gg-tab" data-range="morgen">Morgen</button>
+        <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
+        <button class="gg-tab" data-range="alle">Alle</button>
+        <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">Unsere Tipps</button>
+      </div>
+      <div class="gg-filterzeile">
+        <select class="gg-select" id="catSelect">
+          <option value="">Alle Kategorien</option>
+        </select>
+        <button class="gg-tab gg-date-btn" id="dateTab" type="button" aria-expanded="false" aria-controls="calBox">Datum wählen</button>
+        <input type="search" id="searchInput" class="gg-search" placeholder="Suchen …" aria-label="Events durchsuchen" autocomplete="off">
+      </div>
+    </div>
     <button class="gg-submit-btn" id="submitToggle" type="button">Event einreichen</button>
   </div>
   <div class="gg-cal" id="calBox" hidden></div>
