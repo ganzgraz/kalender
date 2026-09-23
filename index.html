@@ -93,6 +93,11 @@
     color: var(--gg-text); background: #fff; flex: 0 1 190px; min-width: 140px;
   }
   .gg-search::placeholder { color: var(--gg-muted); }
+  /* Suche und Datumswahl bleiben als Paar zusammen – auch wenn die Leiste umbricht. */
+  .gg-finden { display: inline-flex; align-items: center; gap: 8px; flex: 1 1 300px; min-width: 0; }
+  .gg-finden .gg-search { flex: 1 1 auto; min-width: 0; }
+  .gg-date-btn { white-space: nowrap; flex-shrink: 0; }
+  .gg-date-btn::after { content: " \25BE"; font-size: 12px; }
   .gg-search:focus { outline: none; border-color: var(--gg-purple); }
   .gg-search-info { font-size: 13px; color: var(--gg-muted); margin: 6px 0 4px; }
   .gg-search-info button {
@@ -356,12 +361,14 @@
     <button class="gg-tab" data-range="morgen">Morgen</button>
     <button class="gg-tab" data-range="7">Nächste 7 Tage</button>
     <button class="gg-tab" data-range="alle">Alle</button>
-    <button class="gg-tab" id="dateTab" type="button" aria-expanded="false" aria-controls="calBox">Datum wählen</button>
     <button class="gg-tab tipp-toggle" id="tippToggle" title="Nur ganzgraz-Empfehlungen anzeigen">Unsere Tipps</button>
     <select class="gg-select" id="catSelect">
       <option value="">Alle Kategorien</option>
     </select>
-    <input type="search" id="searchInput" class="gg-search" placeholder="Suchen …" aria-label="Events durchsuchen" autocomplete="off">
+    <span class="gg-finden">
+      <button class="gg-tab gg-date-btn" id="dateTab" type="button" aria-expanded="false" aria-controls="calBox">Datum wählen</button>
+      <input type="search" id="searchInput" class="gg-search" placeholder="Suchen …" aria-label="Events durchsuchen" autocomplete="off">
+    </span>
     <button class="gg-submit-btn" id="submitToggle" type="button">Event einreichen</button>
   </div>
   <div class="gg-cal" id="calBox" hidden></div>
