@@ -24,7 +24,8 @@
     background: var(--gg-bg);
     padding: 8px 4px 32px;
   }
-  .gg-wrap { max-width: 860px; margin: 0 auto; }
+  /* 1100 px passt zur verbreiterten Einbettung auf ganzgraz.at (siehe Embed-Code). */
+  .gg-wrap { max-width: 1100px; margin: 0 auto; }
 
   /* ---------- Filterleiste ---------- */
   .gg-filters {
@@ -33,8 +34,8 @@
   }
   .gg-tab {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
-    font-size: 14px; letter-spacing: .02em;
-    padding: 8px 14px 6px; border-radius: 999px;
+    font-size: 16px; letter-spacing: .02em;
+    padding: 9px 16px 7px; border-radius: 999px;
     border: 2px solid var(--gg-purple); background: #fff; color: var(--gg-purple);
     cursor: pointer; transition: background .15s, color .15s;
   }
@@ -44,8 +45,8 @@
   .gg-tab.tipp-toggle:hover { background: var(--gg-pastellorange); }
   .gg-tab.tipp-toggle.active { background: var(--gg-orange); color: #fff; }
   .gg-select {
-    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 500;
-    padding: 8px 10px; border-radius: 999px; border: 2px solid var(--gg-flieder);
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 500;
+    padding: 9px 12px; border-radius: 999px; border: 2px solid var(--gg-flieder);
     color: var(--gg-purple); background: #fff; cursor: pointer;
   }
   .gg-select:focus { outline: 2px solid var(--gg-purple); }
@@ -88,8 +89,8 @@
   .gg-cal-day.gewaehlt.hat::after { background: #fff; }
   .gg-cal-legende { margin-top: 8px; font-size: 11.5px; color: var(--gg-muted); }
   .gg-search {
-    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 500;
-    padding: 8px 14px; border-radius: 999px; border: 2px solid var(--gg-flieder);
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 500;
+    padding: 9px 16px; border-radius: 999px; border: 2px solid var(--gg-flieder);
     color: var(--gg-text); background: #fff; flex: 0 1 190px; min-width: 140px;
   }
   .gg-search::placeholder { color: var(--gg-muted); }
@@ -346,15 +347,53 @@
     border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 500;
     margin-bottom: 14px;
   }
+  /* ---------- Größere Darstellung (Redaktionswunsch Sept. 2026) ----------
+     Alles rund 10–15 % größer, passend zur breiteren Einbettung. Bewusst als ein Block
+     gesammelt, damit sich die Größen an einer Stelle nachjustieren lassen. */
+  .gg-day { font-size: 23px; margin: 30px 0 12px; }
+  .gg-card { gap: 18px; padding: 18px 22px; margin-bottom: 12px; border-radius: 16px; }
+  .gg-time { font-size: 17px; min-width: 60px; }
+  .gg-title { font-size: 19.5px; }
+  .gg-title-row { gap: 10px; }
+  .gg-badge { font-size: 12px; padding: 5px 10px 4px; }
+  .gg-badge svg { width: 15px; height: 15px; }
+  .gg-cat { font-size: 12.5px; padding: 4px 10px; }
+  .gg-meta { font-size: 14.5px; margin-top: 6px; }
+  .gg-desc { font-size: 15px; margin-top: 9px; }
+  .gg-more { font-size: 14px; }
+  .gg-links { gap: 18px; margin-top: 10px; }
+  .gg-links a { font-size: 14.5px; }
+  .gg-autor span { font-size: 14.5px; }
+  .gg-autor img, .gg-autor .gg-initial { width: 34px; height: 34px; }
+  .gg-figur { width: 124px; flex: 0 0 124px; }
+  .gg-img { width: 124px; height: 124px; border-radius: 12px; }
+  .gg-credit { font-size: 12px; }
+  details.gg-laufend > summary { font-size: 14px; padding: 11px 2px 9px; }
+  .gg-laufend-count { font-size: 13px; }
+  .gg-laufend-bis { font-size: 14.5px; min-width: 96px; }
+  .gg-laufend-titel { font-size: 15.5px; }
+  .gg-laufend-meta { font-size: 13.5px; }
+  details.gg-month > summary { font-size: 20px; }
+  .gg-month-count { font-size: 14px; }
+  .gg-member-text { font-size: 15px; }
+  a.gg-member-btn { font-size: 16px; }
+  .gg-search-info { font-size: 14.5px; }
+  .gg-submit-body, .gg-submit-coop { font-size: 15px; }
+  .gg-empty { font-size: 15.5px; }
+  .gg-cal-day { font-size: 14.5px; }
+  .gg-footer { font-size: 12.5px; }
+
   @media (max-width: 560px) {
     /* Auf dem Handy ist die Textspalte zu schmal für ein Bild daneben. Das Bild
        rutscht daher unter den Text und nimmt die volle Breite ein. */
     .gg-card { flex-wrap: wrap; }
     .gg-figur { width: 100%; flex: 1 0 100%; margin-top: 10px; }
-    .gg-img { width: 100%; height: 120px; }
+    .gg-img { width: 100%; height: 150px; }
     .gg-credit { text-align: right; }
-    .gg-time { min-width: 44px; font-size: 14px; }
-    .gg-title { font-size: 16px; }
+    .gg-card { padding: 14px 14px; gap: 12px; }
+    .gg-time { min-width: 48px; font-size: 15.5px; }
+    .gg-title { font-size: 17.5px; }
+    .gg-day { font-size: 21px; }
     .gg-laufend-row { flex-wrap: wrap; gap: 2px; }
     .gg-laufend-bis { min-width: 0; }
   }
