@@ -708,10 +708,12 @@ function render() {
     }
     html += dayGroupsHtml(evs);
   } else if (state.range === "alle") {
-    // Nächste 30 Tage detailliert, spätere Monate als zusammenklappbare Abschnitte
-    const t30 = todayKey(30);
-    const near = evs.filter(e => viennaDateKey(e.beginn) <= t30);
-    const far = evs.filter(e => viennaDateKey(e.beginn) > t30);
+    // Mindestens 30 Tage detailliert, und zwar immer bis zum Monatsende – sonst wird ein
+    // Monat mittendrin abgeschnitten (24.9.: Oktober bis 24. offen, Rest zugeklappt).
+    // Spätere Monate als zusammenklappbare Abschnitte.
+    const grenzMonat = todayKey(30).slice(0, 7);
+    const near = evs.filter(e => viennaDateKey(e.beginn).slice(0, 7) <= grenzMonat);
+    const far = evs.filter(e => viennaDateKey(e.beginn).slice(0, 7) > grenzMonat);
     html += dayGroupsHtml(near);
     const months = {};
     far.forEach(e => { const mk = viennaDateKey(e.beginn).slice(0, 7); (months[mk] = months[mk] || []).push(e); });
