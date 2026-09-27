@@ -383,6 +383,56 @@
   .gg-cal-day { font-size: 14.5px; }
   .gg-footer { font-size: 12.5px; }
 
+  /* ---------- "In meinen Kalender" ---------- */
+  /* Als eigener Knopf mit Symbol, nicht als Textlink – sonst wird er übersehen */
+  button.gg-kalbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1;
+    color: #fff; background: var(--gg-purple); border: none; border-radius: 999px;
+    padding: 7px 13px 7px 11px; cursor: pointer;
+  }
+  button.gg-kalbtn svg { width: 16px; height: 16px; flex-shrink: 0; }
+  button.gg-kalbtn:hover { background: var(--gg-orange); }
+  button.gg-kalbtn-klein { font-size: 12.5px; padding: 5px 10px 5px 8px; margin-top: 6px; }
+  button.gg-kalbtn-klein svg { width: 14px; height: 14px; }
+  .gg-links { align-items: center; }
+  .gg-kalmenu {
+    margin-top: 10px; padding: 10px 12px; border: 1px solid #e8e2f5; border-radius: 10px;
+    background: #faf7ff; font-size: 14px; line-height: 1.45;
+  }
+  .gg-kalmenu-zeile { display: flex; flex-wrap: wrap; gap: 8px; }
+  .gg-kalmenu a, .gg-kalmenu button.gg-kal-opt {
+    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--gg-purple);
+    text-decoration: none; background: #fff; border: 1px solid var(--gg-flieder);
+    border-radius: 999px; padding: 5px 12px; cursor: pointer;
+  }
+  .gg-kalmenu a:hover, .gg-kalmenu button.gg-kal-opt:hover { border-color: var(--gg-orange); color: var(--gg-orange); }
+  .gg-kalmenu-was { font-size: 13px; color: var(--gg-muted); margin-bottom: 8px; }
+  .gg-kalmenu-hinweis { margin-bottom: 8px; color: var(--gg-text); }
+
+  /* ---------- Teilen ---------- */
+  button.gg-teilbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1;
+    color: var(--gg-purple); background: #fff; border: 1.5px solid var(--gg-purple); border-radius: 999px;
+    padding: 6px 12px 6px 10px; cursor: pointer;
+  }
+  button.gg-teilbtn svg { width: 15px; height: 15px; flex-shrink: 0; }
+  button.gg-teilbtn:hover { color: var(--gg-orange); border-color: var(--gg-orange); }
+  button.gg-teilbtn.gg-kalbtn-klein { font-size: 12.5px; padding: 4px 10px 4px 8px; }
+  .gg-laufend-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .gg-teil-link {
+    width: 100%; margin-top: 8px; font-family: inherit; font-size: 13px; color: var(--gg-text);
+    border: 1px solid #e8e2f5; border-radius: 8px; padding: 6px 8px; background: #fff;
+  }
+  /* Über einen geteilten Link geöffnet */
+  .gg-geteilt { outline: 3px solid var(--gg-orange); outline-offset: 3px; border-radius: 14px; }
+  .gg-geteilt-hinweis {
+    margin: 14px 0 4px; padding: 10px 14px; border-radius: 10px;
+    background: #fff4e8; color: var(--gg-text); font-size: 14.5px;
+  }
+  .gg-geteilt-hinweis strong { color: var(--gg-purple); }
+
   @media (max-width: 560px) {
     /* Auf dem Handy ist die Textspalte zu schmal für ein Bild daneben. Das Bild
        rutscht daher unter den Text und nimmt die volle Breite ein. */
@@ -431,12 +481,12 @@
       <li>Unsere Redaktion prüft die Einreichungen – danach erscheinen die Events hier im Kalender.</li>
     </ol>
     <a class="gg-submit-mail" href="mailto:event@ganzgraz.at?subject=Event-Einreichung&body=Hallo%20ganzgraz-Team!%0A%0AWir%20m%C3%B6chten%20folgendes%20Event%20einreichen%3A%0A%0ATitel%3A%20%0ADatum%20%2B%20Uhrzeit%3A%20%0AOrt%2FVenue%3A%20%0AAdresse%3A%20%0AEintritt%3A%20%0ATicket-Link%3A%20%0AKurzbeschreibung%3A%20%0A%0ABild%20siehe%20Anhang.">Jetzt per E-Mail einreichen</a>
-    <div class="gg-submit-coop">Du willst sichergehen, dass dein Event im Graz-Newsletter gelesen wird? Checke unsere <a href="https://ganzgraz.at/werben" target="_blank" rel="noopener">Kooperationsmöglichkeiten</a>.</div>
+    <div class="gg-submit-coop">Du willst sichergehen, dass dein Event im Graz-Newsletter gelesen wird? Checke unsere <a href="https://ganzgraz.at/werben" target="_blank" rel="noopener" data-z="werben">Kooperationsmöglichkeiten</a>.</div>
     <div class="gg-submit-note">Mit dem Absenden akzeptierst du, dass wir deine Angaben zur Prüfung und Veröffentlichung verarbeiten. Mehr dazu in der <a href="https://ganzgraz.at/datenschutzerklaerung" target="_blank" rel="noopener">Datenschutzerklärung</a>.</div>
   </div>
   <div class="gg-member">
     <div class="gg-member-text"><strong>ganzgraz gehört im Gegensatz zu anderen Medien keinem Konzern.</strong><br>Nur durch deinen freiwilligen Beitrag gibt es diesen Event-Kalender.</div>
-    <a class="gg-member-btn" href="https://ganzgraz.at/mitmachen" target="_blank" rel="noopener">Member werden</a>
+    <a class="gg-member-btn" href="https://ganzgraz.at/mitmachen" target="_blank" rel="noopener" data-z="member">Member werden</a>
   </div>
   <div id="content"><div class="gg-empty">Events werden geladen …</div></div>
   <div class="gg-footer"><span class="goose">ganz</span><span class="goose" style="font-size:13px">graz</span> Eventkalender · Ein Event einreichen? <a href="mailto:event@ganzgraz.at" style="color:var(--gg-purple)">event@ganzgraz.at</a></div>
@@ -471,6 +521,7 @@ const CACHE_KEY = "ggKalenderCache";
 
 function mapEvents(liste) {
   return (liste || []).map(e => ({
+    id: /^rec[A-Za-z0-9]+$/.test(e.id || "") ? e.id : "",   // Airtable-Datensatz, für Teilen-Links
     titel: e.titel || "Ohne Titel",
     beginn: e.beginn ? new Date(e.beginn) : null,
     ende: e.ende ? new Date(e.ende) : null,
@@ -490,7 +541,7 @@ function mapEvents(liste) {
     oeffnungszeiten: e.oeffnungszeiten || "",
     autorFoto: "",
     autorSeite: ""
-  })).filter(e => e.beginn);
+  })).filter(e => e.beginn).map((e, i) => { e.idx = i; return e; });   // idx: für "In meinen Kalender"
 }
 
 async function holeJson(url) {
@@ -523,6 +574,7 @@ async function loadEvents() {
   if (!daten) daten = await holeJson(CONFIG.EVENTS_URL);
 
   if (!daten) {
+    if (hatteEtwas) tiefLinkOeffnen();
     if (!hatteEtwas) {
       document.getElementById("content").innerHTML =
         '<div class="gg-error">Der Kalender konnte gerade nicht geladen werden. Bitte später noch einmal versuchen.</div>';
@@ -533,6 +585,7 @@ async function loadEvents() {
   allEvents = mapEvents(daten.events);
   try { localStorage.setItem(CACHE_KEY, JSON.stringify({ events: daten.events, stand: daten.stand })); } catch (err) {}
   render();
+  tiefLinkOeffnen();   // geteilter Link? Erst jetzt, mit den frischen Daten
 }
 
 /* ---------- Hilfsfunktionen (Zeitzone Wien) ---------- */
@@ -647,11 +700,16 @@ function laufendTagHtml(tag) {
     if (e.ort) info.push("<strong>" + esc(e.ort) + "</strong>");
     if (e.oeffnungszeiten) info.push(esc(e.oeffnungszeiten));
     if (e.eintritt) info.push("Eintritt: " + esc(e.eintritt));
-    return '<div class="gg-laufend-row">' +
+    return '<div class="gg-laufend-row" data-eid="' + esc(e.id) + '">' +
       '<span class="gg-laufend-bis">bis ' + esc(fmtDatumKurz(e.ende)) + '</span>' +
       '<div class="gg-laufend-body">' +
         '<div class="gg-laufend-titel">' + esc(ausstellungsTitel(e.titel)) + '</div>' +
         (info.length ? '<div class="gg-laufend-meta">' + info.join(" &nbsp;·&nbsp; ") + '</div>' : "") +
+        // Im Mehrtägig-Block: genau der Tag, unter dem man gerade schaut
+        '<div class="gg-laufend-knoepfe">' +
+          '<button type="button" class="gg-kalbtn gg-kalbtn-klein" onclick="kalMenue(this,' + e.idx + ',\'' + tag + '\')">' + KAL_SVG + 'In meinen Kalender</button>' +
+          '<button type="button" class="gg-teilbtn gg-kalbtn-klein" onclick="teilen(this,' + e.idx + ')">' + TEIL_SVG + 'Teilen</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join("");
@@ -795,9 +853,12 @@ function card(e, id) {
   // deuten und ins Leere laufen – deshalb hier absichern.
   const absolut = u => /^(https?:\/\/|mailto:|tel:)/i.test(u) ? u : "https://" + u;
   const links = [];
-  if (e.ticket) links.push('<a href="' + esc(absolut(e.ticket)) + '" target="_blank" rel="noopener">Tickets</a>');
-  if (e.source) links.push('<a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener">Mehr Infos</a>');
-  return '<div class="' + cls + '">' +
+  if (e.ticket) links.push('<a href="' + esc(absolut(e.ticket)) + '" target="_blank" rel="noopener" data-z="ticket" data-i="' + e.idx + '">Tickets</a>');
+  if (e.source) links.push('<a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener" data-z="info" data-i="' + e.idx + '">Mehr Infos</a>');
+  // Auf der Karte: der Termin selbst (bei Ausstellungen also die Eröffnung)
+  links.push('<button type="button" class="gg-kalbtn" onclick="kalMenue(this,' + e.idx + ',\'\')">' + KAL_SVG + 'In meinen Kalender</button>');
+  links.push('<button type="button" class="gg-teilbtn" onclick="teilen(this,' + e.idx + ')">' + TEIL_SVG + 'Teilen</button>');
+  return '<div class="' + cls + '" data-eid="' + esc(e.id) + '">' +
     '<div class="gg-time">' + fmtTime(e.beginn) + "</div>" +
     '<div class="gg-body">' +
       '<div class="gg-title-row"><span class="gg-title">' + esc(e.titel) + "</span>" + badge +
@@ -812,6 +873,363 @@ function card(e, id) {
         (zeigeCredit(e.credit) ? '<figcaption class="gg-credit">' + esc(e.credit) + '</figcaption>' : "") + '</figure>'
       : "") +
   "</div>";
+}
+
+/* ================= "In meinen Kalender" =================
+   Karte: der Termin selbst (Ausstellungen: die Eröffnung).
+   Mehrtägig-Block: genau der Tag, unter dem man schaut – mit den Öffnungszeiten
+   dieses Wochentags. Ist an dem Tag zu, gibt es einen Hinweis samt nächstem Öffnungstag.
+   Google und Outlook.com bekommen einen Link, Apple/Outlook-Programm eine .ics-Datei. */
+// Steht am Ende jedes gespeicherten Termins – dort, wo die Leute ihn vor dem Event wieder ansehen
+const KAL_FUSS = "Mehr Grazer Tipps im ganzgraz-Newsletter: https://news.ganzgraz.at\n" +
+  "ganzgraz gehört keinem Konzern – unterstütze uns als Member: https://ganzgraz.at/mitmachen";
+
+/* ---------- Nutzungszählung ----------
+   Nur Summen, keine Cookies, keine Personendaten. Geht an den eigenen Apps-Script-
+   Endpoint (kein Drittanbieter). Schlägt sie fehl, merkt niemand etwas. */
+function zaehle(typ, titel) {
+  try {
+    fetch(CONFIG.EVENTS_URL + "?z=" + encodeURIComponent(typ) +
+      (titel ? "&t=" + encodeURIComponent(String(titel).slice(0, 60)) : ""),
+      { mode: "no-cors", keepalive: true, cache: "no-store" });
+  } catch (err) {}
+}
+// Ein Listener für alle zählbaren Klicks: Elemente mit data-z (Typ) und data-i (Event)
+document.addEventListener("click", ev => {
+  const el = ev.target.closest("[data-z]");
+  if (!el) return;
+  const e = el.dataset.i ? allEvents.find(x => x.idx === Number(el.dataset.i)) : null;
+  zaehle(el.dataset.z, e ? e.titel : "");
+}, true);
+const KAL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M12 13v5M9.5 15.5h5"/></svg>';
+
+const WT_KURZ = { mo: 1, di: 2, mi: 3, do: 4, fr: 5, sa: 6, so: 0 };
+const WT_NAME = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
+/* Öffnungszeiten lesen. Versteht die üblichen Formen:
+   "täglich 18–22 Uhr", "Mi–Fr 16–18 Uhr", "Di–So 10–17 Uhr", "Mo, Mi, Fr 9–12 Uhr",
+   "Mo–Fr 8–18 Uhr, Sa 9–13 Uhr, an Feiertagen geschlossen".
+   Alles andere (Doppelzeiten, "Do bis 20 Uhr", "nach Vereinbarung" …) gilt als
+   kompliziert – dann wird ganztägig eingetragen und nichts behauptet. */
+function oeffnungLesen(txt) {
+  const s = String(txt || "").toLowerCase()
+    .replace(/[–—]/g, "-").replace(/\s+bis\s+/g, "-").replace(/\buhr\b|\bh\b/g, " ")
+    .replace(/täglich|taeglich|jeden tag|mo-so/g, " mo-so ");
+  const tag = "\\b(mo|di|mi|do|fr|sa|so)[a-zä]*\\.?";   // \b: "also 10-12" ist kein Sonntag
+  const re = new RegExp("(" + tag + "(?:\\s*(?:-|,|\\/|&|und)\\s*" + tag + ")*)\\s*:?\\s*" +
+    "(\\d{1,2})(?:[:.](\\d{2}))?\\s*-\\s*(\\d{1,2})(?:[:.](\\d{2}))?", "g");
+  const tage = {};
+  let m, rest = s, treffer = 0, kompliziert = false;
+  while ((m = re.exec(s)) !== null) {
+    treffer++;
+    rest = rest.replace(m[0], " ");
+    const zeit = [+m[m.length - 4], +(m[m.length - 3] || 0), +m[m.length - 2], +(m[m.length - 1] || 0)];
+    if (zeit[0] > 24 || zeit[2] > 24) { kompliziert = true; continue; }
+    // Tagesangabe in Einzeltage auflösen: "mi-fr" → 3,4,5; "mo, mi" → 1,3
+    const teile = m[1].split(/\s*(,|\/|&|und)\s*/).filter(t => t && !/^(,|\/|&|und)$/.test(t));
+    teile.forEach(t => {
+      const b = t.split(/\s*-\s*/).map(x => WT_KURZ[x.slice(0, 2)]);
+      if (b.some(x => x === undefined)) { kompliziert = true; return; }
+      const liste = [];
+      if (b.length === 2) { let d = b[0]; for (let n = 0; n < 7; n++) { liste.push(d); if (d === b[1]) break; d = (d + 1) % 7; } }
+      else liste.push(b[0]);
+      liste.forEach(d => { if (tage[d]) kompliziert = true; tage[d] = zeit; });
+    });
+  }
+  // Bleiben Zahlen übrig ("Do bis 20", "9-12 und 14-18"), ist es zu kompliziert
+  if (/\d/.test(rest)) kompliziert = true;
+  return { ok: treffer > 0 && !kompliziert, tage };
+}
+
+function wochentagVon(tagKey) { return new Date(tagKey + "T12:00:00Z").getUTCDay(); }
+function tagPlus(tagKey, n) {
+  const d = new Date(tagKey + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+/* Wiener Ortszeit → echter Zeitpunkt (Sommer-/Winterzeit richtig) */
+function wienZeit(tagKey, h, min) {
+  const [y, mo, d] = tagKey.split("-").map(Number);
+  let t = Date.UTC(y, mo - 1, d, h, min);
+  for (let i = 0; i < 2; i++) {
+    const teile = new Intl.DateTimeFormat("en-GB", { timeZone: CONFIG.TIMEZONE, hourCycle: "h23",
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date(t));
+    const g = {}; teile.forEach(p => g[p.type] = p.value);
+    const alsUtc = Date.UTC(+g.year, +g.month - 1, +g.day, +g.hour, +g.minute);
+    t += Date.UTC(y, mo - 1, d, h, min) - alsUtc;
+  }
+  return new Date(t);
+}
+function istMitternachtWien(d) { return fmtTime(d) === "00:00"; }
+
+/* Welcher Termin soll in den Kalender? Liefert {start, ende, ganztags} oder
+   {geschlossen, naechster} für den Hinweis. */
+function kalTermin(e, tag) {
+  if (!tag) {
+    // Karte: der Termin selbst. Ende nur übernehmen, wenn es ein Abend ist, keine Laufzeit.
+    if (istMitternachtWien(e.beginn)) {   // keine Uhrzeit bekannt → ganztägig
+      const k = viennaDateKey(e.beginn);
+      return { ganztags: true, start: k, ende: tagPlus(k, 1) };
+    }
+    const dauer = e.ende ? e.ende - e.beginn : 0;
+    const ende = (dauer > 0 && dauer <= 16 * 3600000) ? e.ende : new Date(e.beginn.getTime() + 2 * 3600000);
+    return { start: e.beginn, ende };
+  }
+  // Mehrtägig-Block: dieser eine Tag
+  const oz = oeffnungLesen(e.oeffnungszeiten);
+  if (oz.ok) {
+    const z = oz.tage[wochentagVon(tag)];
+    if (z) return { start: wienZeit(tag, z[0], z[1]), ende: wienZeit(tag, z[2], z[3]) };
+    // An diesem Wochentag zu: nächsten Öffnungstag innerhalb der Laufzeit suchen
+    const letzter = viennaDateKey(e.ende);
+    let naechster = "";
+    for (let n = 1; n <= 31; n++) {
+      const k = tagPlus(tag, n);
+      if (k > letzter) break;
+      if (oz.tage[wochentagVon(k)]) { naechster = k; break; }
+    }
+    return { geschlossen: true, naechster };
+  }
+  return { ganztags: true, start: tag, ende: tagPlus(tag, 1) };
+}
+
+function kalBeschreibung(e) {
+  const teile = [];
+  if (e.beschreibung) teile.push(e.beschreibung.length > 400 ? e.beschreibung.slice(0, 397) + "…" : e.beschreibung);
+  if (e.oeffnungszeiten && istMehrtaegig(e)) teile.push("Öffnungszeiten: " + e.oeffnungszeiten);
+  if (e.eintritt) teile.push("Eintritt: " + e.eintritt);
+  const link = e.source || e.ticket;
+  if (link) teile.push((/^https?:\/\//i.test(link) ? "" : "https://") + link);
+  teile.push(KAL_FUSS);
+  return teile.join("\n\n");
+}
+function kalOrt(e) { return [e.ort, e.adresse].filter(Boolean).join(", "); }
+function kalTitel(e, tag) { return tag ? ausstellungsTitel(e.titel) : e.titel; }
+
+function utcStempel(d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+function datumStempel(k) { return k.replace(/-/g, ""); }
+
+function googleLink(e, t, tag) {
+  const dates = t.ganztags ? datumStempel(t.start) + "/" + datumStempel(t.ende)
+                           : utcStempel(t.start) + "/" + utcStempel(t.ende);
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    "&text=" + encodeURIComponent(kalTitel(e, tag)) + "&dates=" + dates +
+    "&details=" + encodeURIComponent(kalBeschreibung(e)) + "&location=" + encodeURIComponent(kalOrt(e));
+}
+function outlookLink(e, t, tag) {
+  const iso = t.ganztags ? { s: t.start, e: t.ende } : { s: t.start.toISOString(), e: t.ende.toISOString() };
+  return "https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent" +
+    "&subject=" + encodeURIComponent(kalTitel(e, tag)) + "&startdt=" + encodeURIComponent(iso.s) +
+    "&enddt=" + encodeURIComponent(iso.e) + (t.ganztags ? "&allday=true" : "") +
+    "&body=" + encodeURIComponent(kalBeschreibung(e)) + "&location=" + encodeURIComponent(kalOrt(e));
+}
+function icsText(e, t, tag) {
+  const x = s => String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  // Zeilen nach 75 Bytes umbrechen (ICS-Standard); Umlaute zählen doppelt
+  const bytes = c => new TextEncoder().encode(c).length;
+  const falten = z => {
+    const out = []; let zeile = "", n = 0;
+    for (const c of z) {
+      const b = bytes(c);
+      if (n + b > 74) { out.push(zeile); zeile = " "; n = 1; }
+      zeile += c; n += b;
+    }
+    out.push(zeile);
+    return out.join("\r\n");
+  };
+  const zeilen = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ganzgraz//Eventkalender//DE", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + utcStempel(e.beginn) + "-" + e.idx + (tag ? "-" + tag : "") + "@ganzgraz.at",
+    "DTSTAMP:" + utcStempel(new Date()),
+    t.ganztags ? "DTSTART;VALUE=DATE:" + datumStempel(t.start) : "DTSTART:" + utcStempel(t.start),
+    t.ganztags ? "DTEND;VALUE=DATE:" + datumStempel(t.ende) : "DTEND:" + utcStempel(t.ende),
+    "SUMMARY:" + x(kalTitel(e, tag)),
+    "LOCATION:" + x(kalOrt(e)),
+    "DESCRIPTION:" + x(kalBeschreibung(e)),
+    "END:VEVENT", "END:VCALENDAR"
+  ];
+  return zeilen.map(falten).join("\r\n") + "\r\n";
+}
+function icsDateiname(e) {
+  return (sucheNorm(ausstellungsTitel(e.titel)).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "event") + ".ics";
+}
+
+function kalMenue(btn, idx, tag) {
+  const e = allEvents.find(x => x.idx === idx);
+  if (!e) return;
+  // Nur ein Menü gleichzeitig offen; zweiter Klick auf denselben Knopf schließt es
+  const offen = btn.parentNode.parentNode.querySelector(".gg-kalmenu[data-fuer='" + idx + "-" + tag + "']");
+  document.querySelectorAll(".gg-kalmenu").forEach(m => m.remove());
+  if (offen) return;
+  const box = document.createElement("div");
+  box.className = "gg-kalmenu";
+  box.dataset.fuer = idx + "-" + tag;
+  kalMenueFuellen(box, e, tag);
+  // Unter die Linkzeile (Karte) bzw. unter die Zeile im Mehrtägig-Block
+  const ziel = btn.closest(".gg-links") || btn.closest(".gg-laufend-knoepfe") || btn;
+  ziel.insertAdjacentElement("afterend", box);
+}
+
+/* ================= Teilen =================
+   Link-Form: https://ganzgraz.at/eventkalender#e=2026-10-02-recXXXXXXXXXXXXXX
+   Die Datensatz-ID bleibt gleich, auch wenn aus der Einreichung ein Newsletter-Tipp
+   wird. Das Datum im Link ist die Rückfallebene, falls das Event gelöscht wurde. */
+const TEILEN_BASIS = "https://ganzgraz.at/eventkalender";
+const TEIL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+
+function teilLink(e) {
+  const tag = viennaDateKey(e.beginn);
+  return TEILEN_BASIS + (e.id ? "#e=" + tag + "-" + e.id : "#t=" + tag);
+}
+function teilText(e) {
+  const wann = WT_NAME[wochentagVon(viennaDateKey(e.beginn))] + ", " + fmtDatum(e.beginn) +
+    (istMitternachtWien(e.beginn) ? "" : ", " + fmtTime(e.beginn) + " Uhr") +
+    (istMehrtaegig(e) ? " (bis " + fmtDatum(e.ende) + ")" : "");
+  return e.titel + " – " + wann + (e.ort ? " · " + e.ort : "");
+}
+
+async function teilen(btn, idx) {
+  const e = allEvents.find(x => x.idx === idx);
+  if (!e) return;
+  const url = teilLink(e), text = teilText(e);
+  // Handy: das eingebaute Teilen-Menü (WhatsApp, Signal, Instagram …)
+  const handy = navigator.maxTouchPoints > 0 && window.matchMedia("(max-width: 900px)").matches;
+  if (handy && navigator.share) {
+    try {
+      await navigator.share({ title: e.titel, text: text + "\n\nGefunden im ganzgraz-Eventkalender:", url });
+      zaehle("teilen_nativ", e.titel);
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;   // selbst abgebrochen
+      // sonst (z. B. im iframe nicht erlaubt): unten das eigene Menü
+    }
+  }
+  const offen = btn.parentNode.parentNode.querySelector(".gg-kalmenu[data-fuer='teilen-" + idx + "']");
+  document.querySelectorAll(".gg-kalmenu").forEach(m => m.remove());
+  if (offen) return;
+  const box = document.createElement("div");
+  box.className = "gg-kalmenu";
+  box.dataset.fuer = "teilen-" + idx;
+  const nachricht = text + "\n\nGefunden im ganzgraz-Eventkalender: " + url;
+  box.innerHTML = '<div class="gg-kalmenu-zeile">' +
+      '<button type="button" class="gg-kal-opt" data-kopie>Link kopieren</button>' +
+      '<a href="https://wa.me/?text=' + encodeURIComponent(nachricht) + '" target="_blank" rel="noopener" data-z="teilen_whatsapp" data-i="' + idx + '">WhatsApp</a>' +
+      '<a href="mailto:?subject=' + encodeURIComponent(e.titel) + '&body=' + encodeURIComponent(nachricht) + '" data-z="teilen_mail" data-i="' + idx + '">Mail</a>' +
+    '</div>' +
+    '<input class="gg-teil-link" type="text" readonly value="' + esc(url) + '" aria-label="Link zum Event">';
+  const feld = box.querySelector("input");
+  feld.addEventListener("focus", () => feld.select());
+  box.querySelector("[data-kopie]").addEventListener("click", async function () {
+    let ok = false;
+    try { await navigator.clipboard.writeText(url); ok = true; } catch (err) {
+      // Im iframe ohne Freigabe: altmodisch über das Textfeld
+      try { feld.focus(); feld.select(); ok = document.execCommand("copy"); } catch (err2) {}
+    }
+    this.textContent = ok ? "✓ Link kopiert" : "Link unten markiert – bitte kopieren";
+    if (!ok) { feld.focus(); feld.select(); }
+    zaehle("teilen_kopie", e.titel);
+  });
+  const ziel = btn.closest(".gg-links") || btn.closest(".gg-laufend-knoepfe") || btn;
+  ziel.insertAdjacentElement("afterend", box);
+}
+
+/* ---------- Geteilten Link öffnen ----------
+   Der Kalender läuft auf ganzgraz.at in einem iframe. Das kleine Script der Seite
+   hängt den Teil hinter "#" an die iframe-Adresse, hier kommt er an. */
+let tiefLinkErledigt = false;
+function tiefLinkOeffnen() {
+  if (tiefLinkErledigt) return;
+  // #e=… Event zeigen · #k=… Event zeigen und gleich "In meinen Kalender" öffnen
+  // (für Links aus dem Newsletter, wo kein Knopf funktioniert) · #t=… nur den Tag
+  const m = location.hash.match(/^#(?:[ek]=(\d{4}-\d{2}-\d{2})-(rec[A-Za-z0-9]+)|t=(\d{4}-\d{2}-\d{2}))$/);
+  const mitKalender = /^#k=/.test(location.hash);
+  if (!m) return;
+  tiefLinkErledigt = true;
+  const t0 = todayKey(0);
+  const tagAusLink = m[1] || m[3];
+  const e = m[2] ? allEvents.find(x => x.id === m[2]) : null;
+  zaehle("geteilt_offen", e ? e.titel : "");
+  let zielTag, hinweis = "", laufend = false;
+  if (e) {
+    const start = viennaDateKey(e.beginn);
+    if (start >= t0) zielTag = start;
+    else if (istMehrtaegig(e) && viennaDateKey(e.ende) >= t0) { zielTag = t0; laufend = true; }
+    else { zielTag = t0; hinweis = "<strong>" + esc(e.titel) + "</strong> ist leider schon vorbei. Hier ist, was sonst los ist:"; }
+  } else if (tagAusLink >= t0) {
+    zielTag = tagAusLink;
+    hinweis = "Dieses Event gibt es im Kalender nicht mehr. Hier alle Termine am <strong>" + esc(fmtDatum(new Date(tagAusLink + "T12:00:00Z"))) + "</strong>:";
+  } else {
+    zielTag = t0;   // vorbei: auf "Heute"
+    hinweis = "Dieses Event ist leider schon vorbei. Hier ist, was sonst los ist:";
+  }
+  // Ansicht umstellen wie über "Datum wählen" – bzw. "Heute" für laufende Ausstellungen
+  if (zielTag) {
+    tabsZuruecksetzen();
+    if (zielTag === t0) {
+      const h = document.querySelector('.gg-tab[data-range="heute"]');
+      if (h) h.classList.add("active");
+      state.range = "heute"; state.tag = "";
+    } else {
+      dateTab.classList.add("active");
+      dateTab.textContent = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "numeric", month: "short" })
+        .format(new Date(zielTag + "T12:00:00"));
+      state.range = "tag"; state.tag = zielTag;
+    }
+    render();
+  }
+  const box = document.getElementById("content");
+  if (hinweis) box.insertAdjacentHTML("afterbegin", '<div class="gg-geteilt-hinweis">' + hinweis + '</div>');
+  let el = null;
+  if (e && e.id) {
+    el = box.querySelector('.gg-card[data-eid="' + e.id + '"]') ||
+         box.querySelector('.gg-laufend-row[data-eid="' + e.id + '"]');
+    if (el) {
+      const det = el.closest("details");
+      if (det) det.open = true;
+      el.classList.add("gg-geteilt");
+      const beschr = el.querySelector(".gg-desc.clamp");
+      if (beschr) { beschr.classList.remove("clamp"); const b = el.querySelector(".gg-more"); if (b) b.textContent = "weniger anzeigen"; }
+    }
+  }
+  if (el && mitKalender) {
+    const kb = el.querySelector("button.gg-kalbtn");
+    if (kb) kb.click();
+  }
+  const ziel = el || box.querySelector(".gg-geteilt-hinweis");
+  if (!ziel) return;
+  // Nach dem Neuzeichnen kurz warten, bis die Höhe gemeldet ist, dann hinscrollen
+  [350, 1200].forEach(ms => setTimeout(() => {
+    const y = Math.max(0, ziel.getBoundingClientRect().top + window.scrollY - 20);
+    if (window.parent !== window) parent.postMessage({ ggKalenderScroll: y }, "*");
+    else window.scrollTo({ top: y, behavior: "smooth" });
+  }, ms));
+}
+window.addEventListener("hashchange", () => { tiefLinkErledigt = false; tiefLinkOeffnen(); });
+
+function kalMenueFuellen(box, e, tag) {
+  const t = kalTermin(e, tag);
+  const wtDatum = k => WT_NAME[wochentagVon(k)] + ", " + fmtDatum(new Date(k + "T12:00:00Z"));
+  if (t.geschlossen) {
+    box.innerHTML = '<div class="gg-kalmenu-hinweis">Am ' + esc(wtDatum(tag)) + ' ist geschlossen' +
+      (e.oeffnungszeiten ? ' (Öffnungszeiten: ' + esc(e.oeffnungszeiten) + ')' : '') + '.' +
+      (t.naechster ? ' Nächster Öffnungstag: <strong>' + esc(wtDatum(t.naechster)) + '</strong>.' : ' Bis zum Ende gibt es keinen Öffnungstag mehr.') +
+      '</div>' +
+      (t.naechster ? '<div class="gg-kalmenu-zeile"><button type="button" class="gg-kal-opt">' +
+        esc(wtDatum(t.naechster)) + ' eintragen</button></div>' : '');
+    const b = box.querySelector("button.gg-kal-opt");
+    if (b) b.addEventListener("click", () => kalMenueFuellen(box, e, t.naechster));
+    return;
+  }
+  const was = t.ganztags
+    ? wtDatum(t.start) + ", ganztägig"
+    : wtDatum(viennaDateKey(t.start)) + ", " + fmtTime(t.start) + "–" + fmtTime(t.ende) + " Uhr";
+  const ics = URL.createObjectURL(new Blob([icsText(e, t, tag)], { type: "text/calendar;charset=utf-8" }));
+  box.innerHTML = '<div class="gg-kalmenu-was">' + esc(was) + '</div>' +
+    '<div class="gg-kalmenu-zeile">' +
+      '<a href="' + esc(googleLink(e, t, tag)) + '" target="_blank" rel="noopener" data-z="kal_google" data-i="' + e.idx + '">Google Kalender</a>' +
+      '<a href="' + ics + '" download="' + esc(icsDateiname(e)) + '" data-z="kal_datei" data-i="' + e.idx + '">Apple / Outlook (Datei)</a>' +
+      '<a href="' + esc(outlookLink(e, t, tag)) + '" target="_blank" rel="noopener" data-z="kal_outlook" data-i="' + e.idx + '">Outlook.com</a>' +
+    '</div>';
 }
 
 function toggleDesc(id, btn) {
@@ -951,6 +1369,7 @@ document.getElementById("submitToggle").addEventListener("click", function () {
 });
 
 loadEvents();
+zaehle("aufruf");
 </script>
 <script>
 /* Höhe an Elternseite melden (Auto-Resize des Embeds, gegen doppelte Scrollleiste)
