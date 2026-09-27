@@ -574,6 +574,7 @@ async function loadEvents() {
   if (!daten) daten = await holeJson(CONFIG.EVENTS_URL);
 
   if (!daten) {
+    datenFrisch = true;
     if (hatteEtwas) tiefLinkOeffnen();
     if (!hatteEtwas) {
       document.getElementById("content").innerHTML =
@@ -585,6 +586,7 @@ async function loadEvents() {
   allEvents = mapEvents(daten.events);
   try { localStorage.setItem(CACHE_KEY, JSON.stringify({ events: daten.events, stand: daten.stand })); } catch (err) {}
   render();
+  datenFrisch = true;
   tiefLinkOeffnen();   // geteilter Link? Erst jetzt, mit den frischen Daten
 }
 
@@ -707,7 +709,7 @@ function laufendTagHtml(tag) {
         (info.length ? '<div class="gg-laufend-meta">' + info.join(" &nbsp;·&nbsp; ") + '</div>' : "") +
         // Im Mehrtägig-Block: genau der Tag, unter dem man gerade schaut
         '<div class="gg-laufend-knoepfe">' +
-          '<button type="button" class="gg-kalbtn gg-kalbtn-klein" onclick="kalMenue(this,' + e.idx + ',\'' + tag + '\')">' + KAL_SVG + 'In meinen Kalender</button>' +
+          '<button type="button" class="gg-kalbtn gg-kalbtn-klein" onclick="kalMenue(this,' + e.idx + ',\'' + tag + '\')">' + KAL_SVG + 'Im Kalender speichern</button>' +
           '<button type="button" class="gg-teilbtn gg-kalbtn-klein" onclick="teilen(this,' + e.idx + ')">' + TEIL_SVG + 'Teilen</button>' +
         '</div>' +
       '</div>' +
@@ -856,7 +858,7 @@ function card(e, id) {
   if (e.ticket) links.push('<a href="' + esc(absolut(e.ticket)) + '" target="_blank" rel="noopener" data-z="ticket" data-i="' + e.idx + '">Tickets</a>');
   if (e.source) links.push('<a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener" data-z="info" data-i="' + e.idx + '">Mehr Infos</a>');
   // Auf der Karte: der Termin selbst (bei Ausstellungen also die Eröffnung)
-  links.push('<button type="button" class="gg-kalbtn" onclick="kalMenue(this,' + e.idx + ',\'\')">' + KAL_SVG + 'In meinen Kalender</button>');
+  links.push('<button type="button" class="gg-kalbtn" onclick="kalMenue(this,' + e.idx + ',\'\')">' + KAL_SVG + 'Im Kalender speichern</button>');
   links.push('<button type="button" class="gg-teilbtn" onclick="teilen(this,' + e.idx + ')">' + TEIL_SVG + 'Teilen</button>');
   return '<div class="' + cls + '" data-eid="' + esc(e.id) + '">' +
     '<div class="gg-time">' + fmtTime(e.beginn) + "</div>" +
@@ -1141,8 +1143,9 @@ function tiefLinkOeffnen() {
   if (tiefLinkErledigt) return;
   // #e=… Event zeigen · #k=… Event zeigen und gleich "In meinen Kalender" öffnen
   // (für Links aus dem Newsletter, wo kein Knopf funktioniert) · #t=… nur den Tag
-  const m = location.hash.match(/^#(?:[ek]=(\d{4}-\d{2}-\d{2})-(rec[A-Za-z0-9]+)|t=(\d{4}-\d{2}-\d{2}))$/);
-  const mitKalender = /^#k=/.test(location.hash);
+  const hash = fremdHash || location.hash;
+  const m = hash.match(/^#(?:[ek]=(\d{4}-\d{2}-\d{2})-(rec[A-Za-z0-9]+)|t=(\d{4}-\d{2}-\d{2}))$/);
+  const mitKalender = /^#k=/.test(hash);
   if (!m) return;
   tiefLinkErledigt = true;
   const t0 = todayKey(0);
@@ -1157,7 +1160,9 @@ function tiefLinkOeffnen() {
     else { zielTag = t0; hinweis = "<strong>" + esc(e.titel) + "</strong> ist leider schon vorbei. Hier ist, was sonst los ist:"; }
   } else if (tagAusLink >= t0) {
     zielTag = tagAusLink;
-    hinweis = "Dieses Event gibt es im Kalender nicht mehr. Hier alle Termine am <strong>" + esc(fmtDatum(new Date(tagAusLink + "T12:00:00Z"))) + "</strong>:";
+    // Nur bei Event-Links (#e=/#k= mit ID) ist "gibt es nicht mehr" wahr; ein reiner
+    // Tages-Link (#t=) zeigt den Tag ohne Hinweis.
+    if (m[2]) hinweis = "Dieses Event gibt es im Kalender nicht mehr. Hier alle Termine am <strong>" + esc(fmtDatum(new Date(tagAusLink + "T12:00:00Z"))) + "</strong>:";
   } else {
     zielTag = t0;   // vorbei: auf "Heute"
     hinweis = "Dieses Event ist leider schon vorbei. Hier ist, was sonst los ist:";
@@ -1205,6 +1210,19 @@ function tiefLinkOeffnen() {
   }, ms));
 }
 window.addEventListener("hashchange", () => { tiefLinkErledigt = false; tiefLinkOeffnen(); });
+
+/* Auf ganzgraz.at kommt der Link per Nachricht von der Seite (WePublish setzt den
+   iframe nach dem Laden neu, eine geänderte iframe-Adresse ginge dabei verloren). */
+let datenFrisch = false;   // wird true, sobald die aktuellen Daten gezeichnet sind
+let fremdHash = "";        // Link-Teil, den die einbettende Seite geschickt hat
+window.addEventListener("message", ev => {
+  const h = ev.data && ev.data.ggKalenderHash;
+  if (typeof h !== "string" || !/^#(e|k|t)=[\w-]+$/.test(h)) return;
+  if (fremdHash === h) return;                                // schon bekommen
+  fremdHash = h;
+  tiefLinkErledigt = false;
+  if (datenFrisch) tiefLinkOeffnen();                         // sonst übernimmt loadEvents
+});
 
 function kalMenueFuellen(box, e, tag) {
   const t = kalTermin(e, tag);
