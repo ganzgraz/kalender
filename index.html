@@ -1205,7 +1205,9 @@ function tiefLinkOeffnen() {
   // Nach dem Neuzeichnen kurz warten, bis die Höhe gemeldet ist, dann hinscrollen
   [350, 1200].forEach(ms => setTimeout(() => {
     const y = Math.max(0, ziel.getBoundingClientRect().top + window.scrollY - 20);
-    if (window.parent !== window) parent.postMessage({ ggKalenderScroll: y }, "*");
+    // Höhe gleich mitschicken: Die Seite muss erst lang genug sein, bevor sie so weit scrollen kann
+    const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    if (window.parent !== window) parent.postMessage({ ggKalenderHeight: h, ggKalenderScroll: y }, "*");
     else window.scrollTo({ top: y, behavior: "smooth" });
   }, ms));
 }
