@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Kalender-Link für den Newsletter – ganzgraz Redaktion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  Werkzeug für die Redaktion: baut "Im Kalender speichern"-Links für Tipps im
+  Newsletter. Der Link führt auf termin.html, die den Termin anzeigt und in Google,
+  Apple/Outlook oder Outlook.com speichert. Nichts wird gespeichert oder verschickt –
+  die Seite setzt nur die Adresse zusammen.
+-->
+<style>
+  :root { --p:#4e2996; --fl:#cdb9ee; --po:#f8c99d; --or:#ff8900; --tx:#2b2b2b; --mu:#6f6f6f; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Montserrat', sans-serif; color: var(--tx); background: #faf7ff; line-height: 1.5; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 26px 18px 40px; }
+  h1 { font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 26px; color: var(--p); }
+  .lead { color: var(--mu); font-size: 14px; margin-top: 4px; }
+  .box { margin-top: 18px; background: #fff; border: 2px solid var(--fl); border-radius: 16px; padding: 18px; }
+  .box h2 { font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 17px; color: var(--p); margin-bottom: 8px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  label .opt { font-weight: 400; color: var(--mu); }
+  input { width: 100%; font-family: inherit; font-size: 15px; padding: 9px 12px; border: 2px solid var(--fl); border-radius: 10px; background: #fff; color: var(--tx); }
+  input:focus { outline: none; border-color: var(--p); }
+  .reihe { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; align-items: end; }
+  .reihe label { margin-top: 12px; }
+  .treffer { margin-top: 8px; display: grid; gap: 6px; }
+  .treffer button { text-align: left; font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid #e8e2f5; border-radius: 10px; background: #faf7ff; cursor: pointer; color: var(--tx); }
+  .treffer button:hover { border-color: var(--or); }
+  .treffer small { color: var(--mu); }
+  .fehler { color: #b00020; font-size: 13px; margin-top: 8px; min-height: 1em; }
+  .knoepfe { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .knoepfe button, .knoepfe a { font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 15px; padding: 10px 18px 8px; border-radius: 999px; cursor: pointer; text-decoration: none; border: 2px solid var(--p); }
+  .knoepfe .primaer { background: var(--p); color: #fff; }
+  .knoepfe .zweit { background: #fff; color: var(--p); }
+  .knoepfe .zweit[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+  #ergebnis { width: 100%; margin-top: 12px; font-size: 13px; font-family: ui-monospace, Consolas, monospace; }
+  .ok { color: #1d7a3a; font-weight: 600; font-size: 14px; margin-top: 8px; min-height: 1.2em; }
+  ol { margin: 6px 0 0 18px; font-size: 14px; }
+  ol li { margin-bottom: 4px; }
+  @media (max-width: 520px) { .reihe { grid-template-columns: 1fr 1fr; } .reihe > div:first-child { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Kalender-Link für den Newsletter</h1>
+  <p class="lead">Für jeden Tipp einen Link erzeugen und in Mailchimp unter den Tipp setzen. Leser:innen landen auf einer Seite, die den Termin in ihren Kalender legt.</p>
+
+  <div class="box">
+    <h2>1 · Aus dem Eventkalender übernehmen <span class="opt" style="font-weight:400;color:var(--mu);font-family:Montserrat;font-size:13px">(optional)</span></h2>
+    <input id="suche" type="search" placeholder="Titel oder Ort eintippen, z. B. „Flohmarkt“" autocomplete="off">
+    <div class="treffer" id="treffer"></div>
+  </div>
+
+  <div class="box">
+    <h2>2 · Termin prüfen oder eintragen</h2>
+    <label for="titel">Titel</label>
+    <input id="titel" type="text" maxlength="200">
+    <div class="reihe">
+      <div><label for="datum">Datum</label><input id="datum" type="date"></div>
+      <div><label for="von">Beginn <span class="opt">(optional)</span></label><input id="von" type="time"></div>
+      <div><label for="bis">Ende <span class="opt">(optional)</span></label><input id="bis" type="time"></div>
+    </div>
+    <p class="lead" style="margin-top:6px">Ohne Beginn wird der Termin ganztägig, ohne Ende tragen wir zwei Stunden ein.</p>
+    <label for="ort">Ort <span class="opt">(z. B. Club Wakuum)</span></label>
+    <input id="ort" type="text" maxlength="150">
+    <label for="adresse">Adresse <span class="opt">(optional)</span></label>
+    <input id="adresse" type="text" maxlength="200">
+    <label for="link">Link zu Infos oder Tickets <span class="opt">(optional)</span></label>
+    <input id="link" type="url" placeholder="https://…">
+    <div class="fehler" id="fehler"></div>
+    <div class="knoepfe">
+      <button type="button" class="primaer" id="kopieren">Link erzeugen und kopieren</button>
+      <a class="zweit" id="vorschau" href="#" target="_blank" rel="noopener" aria-disabled="true">Vorschau öffnen</a>
+      <button type="button" class="zweit" id="leeren">Felder leeren</button>
+    </div>
+    <input id="ergebnis" type="text" readonly placeholder="Hier erscheint der Link">
+    <div class="ok" id="ok"></div>
+  </div>
+
+  <div class="box">
+    <h2>So kommt der Link in Mailchimp</h2>
+    <ol>
+      <li>Unter dem Tipp eine Zeile <strong>„Im Kalender speichern“</strong> schreiben (gerne mit 📅 davor).</li>
+      <li>Den Text markieren, auf das Link-Symbol klicken und den kopierten Link einfügen.</li>
+      <li>Vor dem Versand einmal in der Vorschau anklicken.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+const TERMIN_SEITE = "https://ganzgraz.github.io/kalender/termin.html";
+const TZ = "Europe/Vienna";
+const $ = id => document.getElementById(id);
+const felder = ["titel", "datum", "von", "bis", "ort", "adresse", "link"];
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+const tagKey = d => new Intl.DateTimeFormat("sv-SE", { timeZone: TZ }).format(d);
+const uhr = d => new Intl.DateTimeFormat("de-AT", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
+
+/* ---------- 1. Events aus dem Kalender zum Übernehmen ---------- */
+let events = [];
+fetch("events.json?v=" + Math.floor(Date.now() / 60000), { cache: "no-store" })
+  .then(r => r.json()).then(d => { events = (d.events || []).filter(e => e.beginn); })
+  .catch(() => {});
+function norm(s) { return String(s || "").toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss"); }
+$("suche").addEventListener("input", () => {
+  const q = norm($("suche").value.trim());
+  const box = $("treffer");
+  if (q.length < 2) { box.innerHTML = ""; return; }
+  const heute = tagKey(new Date());
+  const liste = events.filter(e => tagKey(new Date(e.beginn)) >= heute &&
+      q.split(/\s+/).every(w => norm(e.titel + " " + e.ort).indexOf(w) > -1))
+    .sort((a, b) => a.beginn < b.beginn ? -1 : 1).slice(0, 8);
+  box.innerHTML = liste.length ? liste.map((e, i) => {
+    const b = new Date(e.beginn);
+    const zeit = uhr(b) === "00:00" ? "ganztägig" : uhr(b) + " Uhr";
+    return '<button type="button" data-i="' + events.indexOf(e) + '"><strong>' + esc(e.titel) + '</strong><br><small>' +
+      esc(new Intl.DateTimeFormat("de-AT", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(b)) +
+      ', ' + esc(zeit) + (e.ort ? ' · ' + esc(e.ort) : '') + '</small></button>';
+  }).join("") : '<small style="color:var(--mu)">Nichts gefunden – einfach unten von Hand eintragen.</small>';
+});
+$("treffer").addEventListener("click", ev => {
+  const b = ev.target.closest("button[data-i]");
+  if (!b) return;
+  const e = events[+b.dataset.i];
+  const start = new Date(e.beginn);
+  $("titel").value = e.titel || "";
+  $("datum").value = tagKey(start);
+  $("von").value = uhr(start) === "00:00" ? "" : uhr(start);
+  // Ende nur übernehmen, wenn es am selben Tag liegt (keine Ausstellungs-Laufzeit)
+  const ende = e.ende ? new Date(e.ende) : null;
+  $("bis").value = (ende && tagKey(ende) === tagKey(start) && uhr(ende) !== "00:00") ? uhr(ende) : "";
+  $("ort").value = e.ort || "";
+  $("adresse").value = e.adresse || "";
+  $("link").value = e.source || e.ticket || "";
+  $("treffer").innerHTML = ""; $("suche").value = "";
+  aktualisieren();
+});
+
+/* ---------- 2. Link bauen ---------- */
+function linkBauen() {
+  const w = {}; felder.forEach(f => w[f] = $(f).value.trim());
+  if (!w.titel) return { fehler: "Bitte einen Titel eintragen." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(w.datum)) return { fehler: "Bitte ein Datum wählen." };
+  if (w.bis && !w.von) return { fehler: "Ein Ende geht nur zusammen mit einem Beginn." };
+  const p = new URLSearchParams();
+  p.set("t", w.titel); p.set("d", w.datum);
+  if (w.von) p.set("s", w.von);
+  if (w.bis) p.set("e", w.bis);
+  if (w.ort) p.set("o", w.ort);
+  if (w.adresse) p.set("a", w.adresse);
+  if (w.link) p.set("u", /^https?:\/\//i.test(w.link) ? w.link : "https://" + w.link);
+  return { url: TERMIN_SEITE + "?" + p.toString() };
+}
+function aktualisieren() {
+  const r = linkBauen();
+  $("fehler").textContent = "";
+  $("ok").textContent = "";
+  if (r.url) { $("ergebnis").value = r.url; $("vorschau").href = r.url; $("vorschau").setAttribute("aria-disabled", "false"); }
+  else { $("ergebnis").value = ""; $("vorschau").setAttribute("aria-disabled", "true"); }
+  return r;
+}
+felder.forEach(f => $(f).addEventListener("input", aktualisieren));
+$("kopieren").addEventListener("click", async () => {
+  const r = aktualisieren();
+  if (!r.url) { $("fehler").textContent = r.fehler; return; }
+  let ok = false;
+  try { await navigator.clipboard.writeText(r.url); ok = true; }
+  catch (e) { try { $("ergebnis").select(); ok = document.execCommand("copy"); } catch (e2) {} }
+  $("ok").textContent = ok ? "✓ Link kopiert – jetzt in Mailchimp einfügen." : "Bitte den Link oben markieren und kopieren.";
+  if (!ok) $("ergebnis").select();
+});
+$("leeren").addEventListener("click", () => { felder.forEach(f => $(f).value = ""); aktualisieren(); $("suche").focus(); });
+$("ergebnis").addEventListener("focus", () => $("ergebnis").select());
+</script>
+</body>
+</html>
