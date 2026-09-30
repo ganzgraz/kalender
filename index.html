@@ -264,6 +264,7 @@
     font-size: 15px; color: var(--gg-purple);
     min-width: 52px; padding-top: 3px;
   }
+  .gg-zeit-zeile { display: block; line-height: 1.4; }
   .gg-body { flex: 1; min-width: 0; }
   .gg-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .gg-title {
@@ -740,7 +741,7 @@ function render() {
     state.range === "tag" ? state.tag : "";
   // Hinweiszeile über den Ergebnissen einer Suche
   const suchInfo = state.q
-    ? '<div class="gg-search-info">' + evs.length + ' Treffer für „' + esc(state.q) +
+    ? '<div class="gg-search-info">' + anzahlKarten(evs) + ' Treffer für „' + esc(state.q) +
       '“ in allen kommenden Events · <button type="button" onclick="sucheLeeren()">Suche löschen</button></div>'
     : "";
 
@@ -780,9 +781,10 @@ function render() {
     far.forEach(e => { const mk = viennaDateKey(e.beginn).slice(0, 7); (months[mk] = months[mk] || []).push(e); });
     Object.keys(months).sort().forEach(mk => {
       const list = months[mk];
+      const n = anzahlKarten(list);
       const label = new Intl.DateTimeFormat("de-AT", { timeZone: CONFIG.TIMEZONE, month: "long", year: "numeric" }).format(list[0].beginn);
       html += '<details class="gg-month"><summary>' + label +
-        ' <span class="gg-month-count">· ' + list.length + (list.length === 1 ? " Event" : " Events") + '</span></summary>' +
+        ' <span class="gg-month-count">· ' + n + (n === 1 ? " Event" : " Events") + '</span></summary>' +
         dayGroupsHtml(list) + '</details>';
     });
   } else {
@@ -803,9 +805,45 @@ function dayGroupsHtml(evs) {
     html += '<div class="gg-day">' + fmtDayHeading(list[0].beginn) + "</div>";
     // Erst, was an diesem Tag ohnehin offen hat – dann die Termine des Tages.
     html += laufendTagHtml(k);
-    list.forEach((e, i) => { html += card(e, k + "-" + i); });
+    vorstellungenBuendeln(list).forEach((e, i) => { html += card(e, k + "-" + i); });
   });
   return html;
+}
+
+/* ---------- Mehrere Vorstellungen am selben Tag ----------
+   In Airtable bleibt jede Vorstellung ein eigener Datensatz (eigenes Ende, eigener
+   Kalendereintrag, eigener Ticketlink). Angezeigt wird aber EINE Karte mit allen
+   Beginnzeiten links. Zusammen gehört, was am selben Tag denselben Titel und
+   denselben Ort hat – Groß/klein, Satzzeichen und Leerzeichen egal. Dieselbe Regel
+   steht im Script (vorstellungsSchluessel_), das daraus das Feld "Vorstellungen"
+   für die Freigabe befüllt. Mehrtägige und ganztägige Einträge bleiben einzeln. */
+function vorstellungsSchluessel(e) {
+  if (!e.beginn || istMehrtaegig(e) || istMitternachtWien(e.beginn)) return "";
+  const n = s => sucheNorm(s).replace(/[^a-z0-9]/g, "");
+  const t = n(e.titel);
+  return t ? viennaDateKey(e.beginn) + "|" + t + "|" + n(e.ort) : "";
+}
+function vorstellungenBuendeln(list) {
+  const erste = {}, out = [];
+  list.forEach(e => {
+    e.gruppe = null;
+    const k = vorstellungsSchluessel(e);
+    if (k && erste[k]) { erste[k].gruppe.push(e); return; }
+    if (k) { erste[k] = e; e.gruppe = [e]; }
+    out.push(e);
+  });
+  out.forEach(e => {
+    if (e.gruppe && e.gruppe.length > 1) e.gruppe.sort((a, b) => a.beginn - b.beginn);
+    else e.gruppe = null;
+  });
+  return out;
+}
+function anzahlKarten(list) { return vorstellungenBuendeln(list.slice()).length; }
+function dauerText(ms) {
+  const min = Math.round(ms / 60000);
+  if (min < 60) return min + " Min.";
+  const h = Math.round(min / 30) / 2;   // auf halbe Stunden
+  return String(h).replace(".", ",") + " Std.";
 }
 
 // Nur echte Urheberangaben werden unter das Bild gesetzt. Sätze wie "Mit
@@ -820,10 +858,15 @@ function card(e, id) {
   const badge = e.empfehlung === "Wochenhighlight"
     ? '<span class="gg-badge">' + GOOSE_SVG + "Wochenhighlight</span>"
     : e.empfehlung ? '<span class="gg-badge">' + GOOSE_SVG + "ganzgraz-Tipp</span>" : "";
+  const g = e.gruppe && e.gruppe.length > 1 ? e.gruppe : null;   // mehrere Vorstellungen
   const meta = [];
   if (e.ort) meta.push("<strong>" + esc(e.ort) + "</strong>" + (e.adresse ? " · " + esc(e.adresse) : ""));
   if (e.eintritt) meta.push("Eintritt: " + esc(e.eintritt.replace(/^eintritt:?\s*/i, "")));
-  if (e.ende) {
+  if (g) {
+    // "bis 11:30" passt nur zu einer Vorstellung – bei gleicher Dauer "je ca. 1,5 Std."
+    const d = g.map(x => x.ende ? x.ende - x.beginn : 0);
+    if (d[0] > 0 && d.every(x => x === d[0])) meta.push("je ca. " + dauerText(d[0]));
+  } else if (e.ende) {
     // Endet das Event an einem anderen Tag, zeigen wir das Enddatum statt nur der
     // Uhrzeit - sonst wirkt ein mehrtaegiges Festival, als waere es am ersten Abend vorbei.
     const endeTag = viennaDateKey(e.ende);
@@ -856,13 +899,27 @@ function card(e, id) {
   // deuten und ins Leere laufen – deshalb hier absichern.
   const absolut = u => /^(https?:\/\/|mailto:|tel:)/i.test(u) ? u : "https://" + u;
   const links = [];
-  if (e.ticket) links.push('<a href="' + esc(absolut(e.ticket)) + '" target="_blank" rel="noopener" data-z="ticket" data-i="' + e.idx + '">Tickets</a>');
-  if (e.source) links.push('<a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener" data-z="info" data-i="' + e.idx + '">Mehr Infos</a>');
+  const ticketLink = (x, text) => '<a href="' + esc(absolut(x.ticket)) + '" target="_blank" rel="noopener" data-z="ticket" data-i="' + x.idx + '">' + text + '</a>';
+  if (g) {
+    // Gleicher Ticketlink für alle → ein Knopf; verschiedene → je Vorstellung einer
+    const mitTicket = g.filter(x => x.ticket);
+    const verschieden = [...new Set(mitTicket.map(x => x.ticket))];
+    if (verschieden.length === 1) links.push(ticketLink(mitTicket[0], "Tickets"));
+    else mitTicket.forEach(x => links.push(ticketLink(x, "Tickets " + fmtTime(x.beginn))));
+    const mitInfo = g.find(x => x.source);
+    if (mitInfo) links.push('<a href="' + esc(absolut(mitInfo.source)) + '" target="_blank" rel="noopener" data-z="info" data-i="' + mitInfo.idx + '">Mehr Infos</a>');
+  } else {
+    if (e.ticket) links.push(ticketLink(e, "Tickets"));
+    if (e.source) links.push('<a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener" data-z="info" data-i="' + e.idx + '">Mehr Infos</a>');
+  }
   // Auf der Karte: der Termin selbst (bei Ausstellungen also die Eröffnung)
   links.push('<button type="button" class="gg-kalbtn" onclick="kalMenue(this,' + e.idx + ',\'\')">' + KAL_SVG + 'Im Kalender speichern</button>');
   links.push('<button type="button" class="gg-teilbtn" onclick="teilen(this,' + e.idx + ')">' + TEIL_SVG + 'Teilen</button>');
-  return '<div class="' + cls + '" data-eid="' + esc(e.id) + '">' +
-    '<div class="gg-time">' + (istMitternachtWien(e.beginn) ? '<span class="gg-ganztags">ganz-<br>tägig</span>' : fmtTime(e.beginn)) + "</div>" +
+  // data-eid: alle Datensätze der Karte, damit geteilte Links jeder Vorstellung hierher finden
+  return '<div class="' + cls + '" data-eid="' + esc(g ? g.map(x => x.id).join(" ") : e.id) + '">' +
+    '<div class="gg-time">' + (g
+      ? g.map(x => '<span class="gg-zeit-zeile">' + fmtTime(x.beginn) + '</span>').join("")
+      : istMitternachtWien(e.beginn) ? '<span class="gg-ganztags">ganz-<br>tägig</span>' : fmtTime(e.beginn)) + "</div>" +
     '<div class="gg-body">' +
       '<div class="gg-title-row"><span class="gg-title">' + esc(e.titel) + "</span>" + badge +
         (e.kategorie ? '<span class="gg-cat">' + esc(e.kategorie) + "</span>" : "") + "</div>" +
@@ -1074,10 +1131,26 @@ function kalMenue(btn, idx, tag) {
   const box = document.createElement("div");
   box.className = "gg-kalmenu";
   box.dataset.fuer = idx + "-" + tag;
-  kalMenueFuellen(box, e, tag);
+  const g = !tag && e.gruppe && e.gruppe.length > 1 ? e.gruppe : null;
+  const vorwahl = g && kalVorwahl !== null ? g.find(x => x.idx === kalVorwahl) : null;
+  kalVorwahl = null;
+  if (vorwahl) kalMenueFuellen(box, vorwahl, "");          // Newsletter-Link auf eine bestimmte Vorstellung
+  else if (g) vorstellungWaehlen(box, g);                  // mehrere Vorstellungen: erst Uhrzeit wählen
+  else kalMenueFuellen(box, e, tag);
   // Unter die Linkzeile (Karte) bzw. unter die Zeile im Mehrtägig-Block
   const ziel = btn.closest(".gg-links") || btn.closest(".gg-laufend-knoepfe") || btn;
   ziel.insertAdjacentElement("afterend", box);
+}
+let kalVorwahl = null;   // idx der Vorstellung, die ein #k=-Link direkt öffnen soll
+
+function vorstellungWaehlen(box, g) {
+  box.innerHTML = '<div class="gg-kalmenu-was">Welche Vorstellung?</div><div class="gg-kalmenu-zeile">' +
+    g.map(x => '<button type="button" class="gg-kal-opt" data-v="' + x.idx + '">' + esc(fmtTime(x.beginn)) + ' Uhr</button>').join("") +
+    '</div>';
+  box.querySelectorAll("button[data-v]").forEach(b => b.addEventListener("click", () => {
+    const x = g.find(y => y.idx === Number(b.dataset.v));
+    if (x) kalMenueFuellen(box, x, "");
+  }));
 }
 
 /* ================= Teilen =================
@@ -1092,8 +1165,11 @@ function teilLink(e) {
   return TEILEN_BASIS + (e.id ? "#e=" + tag + "-" + e.id : "#t=" + tag);
 }
 function teilText(e) {
+  const g = e.gruppe && e.gruppe.length > 1 ? e.gruppe : null;
+  const zeiten = g ? g.map(x => fmtTime(x.beginn)) : [];
   const wann = WT_NAME[wochentagVon(viennaDateKey(e.beginn))] + ", " + fmtDatum(e.beginn) +
-    (istMitternachtWien(e.beginn) ? "" : ", " + fmtTime(e.beginn) + " Uhr") +
+    (g ? ", " + zeiten.slice(0, -1).join(", ") + " und " + zeiten[zeiten.length - 1] + " Uhr"
+       : istMitternachtWien(e.beginn) ? "" : ", " + fmtTime(e.beginn) + " Uhr") +
     (istMehrtaegig(e) ? " (bis " + fmtDatum(e.ende) + ")" : "");
   return e.titel + " – " + wann + (e.ort ? " · " + e.ort : "");
 }
@@ -1198,7 +1274,8 @@ function tiefLinkOeffnen() {
   if (hinweis) box.insertAdjacentHTML("afterbegin", '<div class="gg-geteilt-hinweis">' + hinweis + '</div>');
   let el = null;
   if (e && e.id) {
-    el = box.querySelector('.gg-card[data-eid="' + e.id + '"]') ||
+    // ~= : eine Karte mit mehreren Vorstellungen trägt alle IDs, durch Leerzeichen getrennt
+    el = box.querySelector('.gg-card[data-eid~="' + e.id + '"]') ||
          box.querySelector('.gg-laufend-row[data-eid="' + e.id + '"]');
     if (el) {
       const det = el.closest("details");
@@ -1210,7 +1287,7 @@ function tiefLinkOeffnen() {
   }
   if (el && mitKalender) {
     const kb = el.querySelector("button.gg-kalbtn");
-    if (kb) kb.click();
+    if (kb) { kalVorwahl = e.idx; kb.click(); kalVorwahl = null; }
   }
   const ziel = el || box.querySelector(".gg-geteilt-hinweis");
   if (!ziel) return;
