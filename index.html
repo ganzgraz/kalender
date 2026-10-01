@@ -265,6 +265,15 @@
     min-width: 52px; padding-top: 3px;
   }
   .gg-zeit-zeile { display: block; line-height: 1.4; }
+  /* Abgesagt / verschoben: bleibt sichtbar, aber deutlich zurückgenommen */
+  .gg-absage {
+    display: inline-block; background: #c62828; color: #fff; font-size: 12px; font-weight: 700;
+    padding: 2px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em;
+  }
+  .gg-absage.verschoben { background: #ff8900; }
+  .gg-card.abgesagt .gg-title, .gg-laufend-row.abgesagt .gg-laufend-titel { text-decoration: line-through; opacity: .7; }
+  .gg-card.abgesagt .gg-time, .gg-card.abgesagt .gg-meta, .gg-card.abgesagt .gg-desc,
+  .gg-card.abgesagt .gg-figur, .gg-card.abgesagt .gg-autor, .gg-laufend-row.abgesagt .gg-laufend-meta { opacity: .5; }
   .gg-body { flex: 1; min-width: 0; }
   .gg-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .gg-title {
@@ -700,6 +709,15 @@ function laufendTagHtml(tag) {
   const list = laufendeAmTag(tag);
   if (!list.length) return "";
   const zeilen = list.map(e => {
+    const ab = absageVon(e.titel);
+    if (ab) {
+      return '<div class="gg-laufend-row abgesagt" data-eid="' + esc(e.id) + '">' +
+        '<span class="gg-laufend-bis">bis ' + esc(fmtDatumKurz(e.ende)) + '</span>' +
+        '<div class="gg-laufend-body">' +
+          '<div class="gg-laufend-titel">' + esc(ausstellungsTitel(ab.titel)) + '</div> ' + absageBadge(ab) +
+          (e.ort ? '<div class="gg-laufend-meta"><strong>' + esc(e.ort) + '</strong></div>' : "") +
+        '</div></div>';
+    }
     const info = [];
     if (e.ort) info.push("<strong>" + esc(e.ort) + "</strong>");
     if (e.oeffnungszeiten) info.push(esc(e.oeffnungszeiten));
@@ -853,7 +871,21 @@ function zeigeCredit(c) {
   return !!c && /foto|photo|bild|©|\(c\)/i.test(c);
 }
 
+/* Abgesagt/verschoben erkennt der Kalender am Titel: "ABGESAGT: …" bzw. "VERSCHOBEN: …".
+   Das Script setzt den Vorsatz bei einer Absage-Mail, die Redaktion kann ihn auch
+   händisch in Airtable eintippen. Angezeigt wird der Titel ohne Vorsatz plus Hinweis. */
+function absageVon(t) {
+  const m = String(t || "").match(/^\s*(abgesagt|verschoben)\s*[:–—-]\s*/i);
+  return m ? { art: m[1].toLowerCase(), titel: String(t).slice(m[0].length) } : null;
+}
+function absageBadge(ab) {
+  return '<span class="gg-absage' + (ab.art === "verschoben" ? " verschoben" : "") + '">' +
+    (ab.art === "verschoben" ? "Verschoben" : "Abgesagt") + '</span>';
+}
+
 function card(e, id) {
+  const ab = absageVon(e.titel);
+  if (ab) return absageKarte(e, ab);
   const cls = e.empfehlung === "Wochenhighlight" ? "gg-card highlight" : e.empfehlung ? "gg-card tipp" : "gg-card";
   const badge = e.empfehlung === "Wochenhighlight"
     ? '<span class="gg-badge">' + GOOSE_SVG + "Wochenhighlight</span>"
@@ -932,6 +964,23 @@ function card(e, id) {
       ? '<figure class="gg-figur"><img class="gg-img" src="' + esc(e.bild) + '" alt="" loading="lazy" onerror="this.closest(\'figure\').remove()">' +
         (zeigeCredit(e.credit) ? '<figcaption class="gg-credit">' + esc(e.credit) + '</figcaption>' : "") + '</figure>'
       : "") +
+  "</div>";
+}
+
+/* Abgesagte Karte: ohne Tickets, Kalender und Teilen – nur der Hinweis und ggf. "Mehr Infos" */
+function absageKarte(e, ab) {
+  const absolut = u => /^(https?:\/\/|mailto:|tel:)/i.test(u) ? u : "https://" + u;
+  return '<div class="gg-card abgesagt" data-eid="' + esc(e.id) + '">' +
+    '<div class="gg-time">' + (istMitternachtWien(e.beginn) ? '<span class="gg-ganztags">ganz-<br>tägig</span>' : fmtTime(e.beginn)) + "</div>" +
+    '<div class="gg-body">' +
+      '<div class="gg-title-row"><span class="gg-title">' + esc(ab.titel) + "</span>" + absageBadge(ab) + "</div>" +
+      (e.ort ? '<div class="gg-meta"><strong>' + esc(e.ort) + "</strong></div>" : "") +
+      '<div class="gg-desc">' + (ab.art === "verschoben"
+        ? "Diese Veranstaltung wurde verschoben. Den neuen Termin findest du – sobald bekannt – im Kalender."
+        : "Diese Veranstaltung wurde abgesagt.") + "</div>" +
+      (e.source ? '<div class="gg-links"><a href="' + esc(absolut(e.source)) + '" target="_blank" rel="noopener" data-z="info" data-i="' + e.idx + '">Mehr Infos</a></div>' : "") +
+    "</div>" +
+    (e.bild ? '<figure class="gg-figur"><img class="gg-img" src="' + esc(e.bild) + '" alt="" loading="lazy" onerror="this.closest(\'figure\').remove()"></figure>' : "") +
   "</div>";
 }
 
