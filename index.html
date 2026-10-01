@@ -143,6 +143,26 @@
     content: "\2022"; position: absolute; left: 4px; color: var(--gg-orange); font-weight: 700;
   }
   .gg-submit-coop a { color: var(--gg-purple); font-weight: 600; }
+  /* Werbeplatz: kräftiges CI-Flieder ohne Rahmen, lila Knopf – hebt sich vom
+     orangen Einreich-Bereich ab und unterscheidet sich vom blassen, umrandeten
+     Member-Kasten darunter */
+  .gg-werbebox {
+    margin-top: 16px; padding: 14px 16px; border-radius: 12px;
+    background: var(--gg-flieder); color: var(--gg-text);
+  }
+  .gg-werbebox-titel {
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 17px;
+    color: var(--gg-purple); margin-bottom: 4px; line-height: 1.25;
+  }
+  .gg-werbebox-text { margin-bottom: 12px; }
+  .gg-werbebox strong { color: var(--gg-purple); }
+  a.gg-werbebox-btn {
+    display: inline-block;
+    font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 15px;
+    background: var(--gg-purple); color: #fff !important; text-decoration: none;
+    padding: 10px 18px 8px; border-radius: 999px;
+  }
+  a.gg-werbebox-btn:hover { background: var(--gg-orange); }
   .gg-submit-note {
     margin-top: 12px; font-size: 12px; line-height: 1.45; color: var(--gg-muted);
   }
@@ -390,6 +410,8 @@
   a.gg-member-btn { font-size: 16px; }
   .gg-search-info { font-size: 14.5px; }
   .gg-submit-body, .gg-submit-coop { font-size: 15px; }
+  .gg-werbebox-titel { font-size: 19px; }
+  a.gg-werbebox-btn { font-size: 16px; }
   .gg-empty { font-size: 15.5px; }
   .gg-cal-day { font-size: 14.5px; }
   .gg-footer { font-size: 12.5px; }
@@ -492,7 +514,11 @@
       <li>Unsere Redaktion prüft die Einreichungen – danach erscheinen die Events hier im Kalender.</li>
     </ol>
     <a class="gg-submit-mail" href="mailto:event@ganzgraz.at?subject=Event-Einreichung&body=Hallo%20ganzgraz-Team!%0A%0AWir%20m%C3%B6chten%20folgendes%20Event%20einreichen%3A%0A%0ATitel%3A%20%0ADatum%20%2B%20Uhrzeit%3A%20%0AOrt%2FVenue%3A%20%0AAdresse%3A%20%0AEintritt%3A%20%0ATicket-Link%3A%20%0AKurzbeschreibung%3A%20%0A%0ABild%20siehe%20Anhang.">Jetzt per E-Mail einreichen</a>
-    <div class="gg-submit-coop">Du willst sichergehen, dass dein Event im Graz-Newsletter gelesen wird? Checke unsere <a href="https://ganzgraz.at/werben" target="_blank" rel="noopener" data-z="werben">Kooperationsmöglichkeiten</a>.</div>
+    <div class="gg-werbebox">
+      <div class="gg-werbebox-titel">Du willst sichergehen, dass dein Event gesehen wird?</div>
+      <div class="gg-werbebox-text">Buch einen Werbeplatz im Graz-Newsletter – so landet dein Event direkt bei <strong>fast 2.000 Leser:innen</strong> im Postfach.</div>
+      <a class="gg-werbebox-btn" href="https://ganzgraz.at/werben" target="_blank" rel="noopener" data-z="werben">Werbeplatz anfragen</a>
+    </div>
     <div class="gg-submit-note">Mit dem Absenden akzeptierst du, dass wir deine Angaben zur Prüfung und Veröffentlichung verarbeiten. Mehr dazu in der <a href="https://ganzgraz.at/datenschutzerklaerung" target="_blank" rel="noopener">Datenschutzerklärung</a>.</div>
   </div>
   <div class="gg-member">
