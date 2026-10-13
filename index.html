@@ -159,10 +159,10 @@
   a.gg-werbebox-btn {
     display: inline-block;
     font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 15px;
-    background: var(--gg-purple); color: #fff !important; text-decoration: none;
+    background: #fff; color: var(--gg-purple) !important; text-decoration: none;
     padding: 10px 18px 8px; border-radius: 999px;
   }
-  a.gg-werbebox-btn:hover { background: var(--gg-orange); }
+  a.gg-werbebox-btn:hover { background: var(--gg-purple); color: #fff !important; }
   .gg-submit-note {
     margin-top: 12px; font-size: 12px; line-height: 1.45; color: var(--gg-muted);
   }
@@ -697,7 +697,19 @@ function filtered() {
 /* Mehrtägig heißt: Das Ende fällt auf einen anderen Kalendertag als der Beginn.
    Ausstellungen, Festivals, Messen. */
 function istMehrtaegig(e) {
-  return !!e.ende && viennaDateKey(e.ende) !== viennaDateKey(e.beginn);
+  if (!e.ende || viennaDateKey(e.ende) === viennaDateKey(e.beginn)) return false;
+  return !endetInDerNacht(e);
+}
+/* Party bis Mitternacht oder Konzert bis 2 Uhr: Das Ende liegt am Folgetag, gehört
+   aber zum selben Abend. Gilt, wenn das Ende spätestens 6:00 Uhr am Folgetag ist und
+   das Event kürzer als 24 Stunden dauert. Dann: eine Karte, "bis 00:00", kein "Mehrtägig". */
+function endetInDerNacht(e) {
+  if (!e.ende || !e.beginn) return false;
+  const dauer = e.ende - e.beginn;
+  if (dauer <= 0 || dauer >= 24 * 3600000) return false;
+  if (viennaDateKey(e.ende) !== tagPlus(viennaDateKey(e.beginn), 1)) return false;
+  const [h, m] = fmtTime(e.ende).split(":").map(Number);
+  return h * 60 + m <= 6 * 60;
 }
 
 /* Bei Dauerevents ist der Datensatz Eröffnung UND Ausstellung zugleich. Ein Titel wie
@@ -929,8 +941,8 @@ function card(e, id) {
     // Uhrzeit - sonst wirkt ein mehrtaegiges Festival, als waere es am ersten Abend vorbei.
     const endeTag = viennaDateKey(e.ende);
     const startTag = viennaDateKey(e.beginn);
-    meta.push(endeTag === startTag
-      ? "bis " + fmtTime(e.ende)
+    meta.push(endeTag === startTag || endetInDerNacht(e)
+      ? "bis " + (fmtTime(e.ende) === "00:00" ? "Mitternacht" : fmtTime(e.ende))
       : "bis " + fmtDatum(e.ende));
   }
   if (e.oeffnungszeiten && istMehrtaegig(e)) meta.push(esc(e.oeffnungszeiten));
