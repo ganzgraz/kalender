@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ganzgraz Eventkalender</title>
+<!-- Als App auf den Handy-Startbildschirm (Redaktionswunsch Okt. 2026) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="theme-color" content="#4e2996">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ganzgraz Events">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700&family=Montserrat:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -285,6 +294,24 @@
     min-width: 52px; padding-top: 3px;
   }
   .gg-zeit-zeile { display: block; line-height: 1.4; }
+  /* Tagesnavigation unter der Liste: gleich weiter zum nächsten/vorigen Tag */
+  .gg-unten { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin: 22px 0 10px; }
+  .gg-unten:empty { display: none; }
+  .gg-unten .gg-tab { cursor: pointer; }
+  .gg-unten .gg-oben { background: none; border: none; color: var(--gg-purple); font-family: inherit;
+    font-weight: 600; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 6px 4px; }
+  .gg-unten-app { flex-basis: 100%; text-align: center; margin-top: 4px; }
+  .gg-unten-app button { background: none; border: none; color: var(--gg-muted); font-family: inherit;
+    font-size: 13.5px; text-decoration: underline; cursor: pointer; }
+  .gg-app-hinweis { margin: 6px 0 16px; padding: 14px 16px; border-radius: 12px; background: #f5eefe;
+    border: 2px solid var(--gg-flieder); font-size: 14px; line-height: 1.55; }
+  .gg-app-hinweis strong { color: var(--gg-purple); }
+  .gg-app-hinweis button.gg-app-install { margin-top: 10px; background: var(--gg-purple); color: #fff; border: none;
+    border-radius: 999px; padding: 9px 18px 7px; font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; }
+  /* Eigener Kopf, wenn der Kalender als App (ohne ganzgraz.at drumherum) läuft */
+  .gg-app-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0 14px; }
+  .gg-app-kopf img { height: 44px; width: auto; display: block; }
+  .gg-app-kopf a { color: var(--gg-purple); font-weight: 600; font-size: 14px; }
   /* Abgesagt / verschoben: bleibt sichtbar, aber deutlich zurückgenommen */
   .gg-absage {
     display: inline-block; background: #c62828; color: #fff; font-size: 12px; font-weight: 700;
@@ -526,6 +553,8 @@
     <a class="gg-member-btn" href="https://ganzgraz.at/mitmachen" target="_blank" rel="noopener" data-z="member">Member werden</a>
   </div>
   <div id="content"><div class="gg-empty">Events werden geladen …</div></div>
+  <div class="gg-unten" id="untenNav"></div>
+  <div class="gg-app-hinweis" id="appHinweis" hidden></div>
   <div class="gg-footer"><span class="goose">ganz</span><span class="goose" style="font-size:13px">graz</span> Eventkalender · Ein Event einreichen? <a href="mailto:event@ganzgraz.at" style="color:var(--gg-purple)">event@ganzgraz.at</a></div>
 </div>
 
@@ -1563,6 +1592,120 @@ document.getElementById("submitToggle").addEventListener("click", function () {
   box.hidden = !box.hidden;
   this.classList.toggle("active", !box.hidden);
 });
+
+/* ---------- Tagesnavigation unten ----------
+   Wer bis ans Ende eines Tages gescrollt hat, soll nicht zurück nach oben müssen:
+   "‹ Gestern · Morgen ›" direkt unter der Liste (Redaktionswunsch Okt. 2026).
+   Bei "Nächste 7 Tage"/"Alle"/Suche nur der Sprung nach oben. Früher als gestern
+   geht es nicht – ältere Events stehen nicht mehr in den Daten. */
+function tagLabel(k) {
+  const t0 = todayKey(0);
+  if (k === tagPlus(t0, -1)) return "Gestern";
+  if (k === t0) return "Heute";
+  if (k === tagPlus(t0, 1)) return "Morgen";
+  return WT_NAME[wochentagVon(k)] + ", " + fmtDatumKurz(new Date(k + "T12:00:00Z"));
+}
+function aktuellerTag() {
+  if (state.q) return "";
+  if (state.range === "heute") return todayKey(0);
+  if (state.range === "morgen") return todayKey(1);
+  if (state.range === "tag") return state.tag;
+  return "";
+}
+function untenNavZeichnen() {
+  const box = document.getElementById("untenNav");
+  if (!box || !allEvents.length) { if (box) box.innerHTML = ""; return; }
+  const k = aktuellerTag();
+  let html = "";
+  if (k) {
+    const vor = tagPlus(k, -1), nach = tagPlus(k, 1);
+    if (vor >= tagPlus(todayKey(0), -1))
+      html += '<button type="button" class="gg-tab" data-gehe="' + vor + '">‹ ' + esc(tagLabel(vor)) + '</button>';
+    html += '<button type="button" class="gg-tab" data-gehe="' + nach + '">' + esc(tagLabel(nach)) + ' ›</button>';
+  }
+  html += '<button type="button" class="gg-oben" data-oben>Nach oben ↑</button>';
+  if (appHinweisSinnvoll()) html += '<div class="gg-unten-app"><button type="button" data-app>📲 Kalender als App aufs Handy</button></div>';
+  box.innerHTML = html;
+}
+function tagZeigen(k) {
+  const t0 = todayKey(0), t1 = todayKey(1);
+  tabsZuruecksetzen();
+  kalenderSchliessen();
+  if (k === t0 || k === t1) {
+    const b = document.querySelector('.gg-tab[data-range="' + (k === t0 ? "heute" : "morgen") + '"]');
+    if (b) b.classList.add("active");
+    state.range = k === t0 ? "heute" : "morgen"; state.tag = "";
+  } else {
+    dateTab.classList.add("active");
+    dateTab.textContent = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "numeric", month: "short" })
+      .format(new Date(k + "T12:00:00"));
+    state.range = "tag"; state.tag = k;
+  }
+  render();
+  nachOben();
+}
+function nachOben() {
+  // Im iframe auf ganzgraz.at scrollt die einbettende Seite (dieselbe Nachricht wie bei geteilten Links)
+  setTimeout(() => {
+    const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    if (window.parent !== window) parent.postMessage({ ggKalenderHeight: h, ggKalenderScroll: 0 }, "*");
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  }, 60);
+}
+document.getElementById("untenNav").addEventListener("click", ev => {
+  const g = ev.target.closest("[data-gehe]");
+  if (g) { zaehle("tagnav"); tagZeigen(g.dataset.gehe); return; }
+  if (ev.target.closest("[data-oben]")) { nachOben(); return; }
+  if (ev.target.closest("[data-app]")) appHinweisZeigen();
+});
+// Nach jedem Neuzeichnen die Navigation unten aktualisieren
+const renderOhneUnten = render;
+render = function () { renderOhneUnten(); untenNavZeichnen(); };
+
+/* ---------- Als App auf den Startbildschirm ----------
+   Die Datei läuft auf ganzgraz.at im iframe – von dort kann der Browser nur die
+   ganzgraz.at-Seite speichern. Deshalb öffnet der Hinweis den Kalender direkt
+   (ganzgraz.github.io/kalender), wo Symbol, Name und Vollbild hinterlegt sind
+   (manifest.webmanifest). Android/Chrome bietet dort einen echten "Installieren"-Knopf,
+   iPhone/Safari nur den Weg über das Teilen-Menü – dafür steht die Anleitung da. */
+const APP_URL = "https://ganzgraz.github.io/kalender/?installieren=1";
+const istApp = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const imIframe = window.parent !== window;
+const istHandy = navigator.maxTouchPoints > 0 && window.matchMedia("(max-width: 900px)").matches;
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", ev => { ev.preventDefault(); installPrompt = ev; });
+function appHinweisSinnvoll() { return istHandy && !istApp; }
+function appHinweisZeigen() {
+  zaehle("app_hinweis");
+  if (imIframe) { window.open(APP_URL, "_blank", "noopener"); return; }
+  const box = document.getElementById("appHinweis");
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  box.innerHTML = '<strong>Den Kalender wie eine App am Handy haben:</strong><br>' +
+    (ios
+      ? 'In Safari unten auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach oben) tippen, dann <strong>„Zum Home-Bildschirm“</strong> wählen.'
+      : 'Im Browser-Menü (⋮ oben rechts) <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> wählen.') +
+    (installPrompt ? '<br><button type="button" class="gg-app-install">Jetzt installieren</button>' : '');
+  box.hidden = false;
+  const b = box.querySelector(".gg-app-install");
+  if (b) b.addEventListener("click", async () => {
+    installPrompt.prompt();
+    const r = await installPrompt.userChoice.catch(() => null);
+    if (r && r.outcome === "accepted") { zaehle("app_installiert"); box.hidden = true; }
+    installPrompt = null;
+  });
+  box.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+// Direkt geöffnet (als App oder über den Hinweis): eigener Kopf mit Logo, weil ganzgraz.at drumherum fehlt
+if (!imIframe) {
+  const kopf = document.createElement("div");
+  kopf.className = "gg-app-kopf";
+  kopf.innerHTML = '<a href="https://ganzgraz.at" target="_blank" rel="noopener"><img src="logo.png" alt="ganzgraz"></a>' +
+    '<a href="https://news.ganzgraz.at" target="_blank" rel="noopener" data-z="newsletter">Graz-Newsletter</a>';
+  const wrap = document.querySelector(".gg-wrap") || document.body;
+  wrap.insertBefore(kopf, wrap.firstChild);
+}
+if (istApp) zaehle("app_start");
+if (/[?&]installieren=1/.test(location.search) && !istApp) setTimeout(appHinweisZeigen, 800);
 
 loadEvents();
 zaehle("aufruf");
