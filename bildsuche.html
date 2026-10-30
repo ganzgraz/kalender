@@ -64,7 +64,7 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <main class="wrap">
 <div class="grid" id="grid"></div>
 <div class="empty" id="empty" hidden>Keine Treffer.</div>
-<div class="info"><strong>Hinweis:</strong> Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: Ordner <a href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Redaktionsfotos</a>, Dateiname nach dem Muster „Ort oder Motiv – Foto Vorname Nachname.jpg“.</div>
+<div class="info"><p style="margin:0 0 10px"><a class="btn" style="display:inline-block;flex:none" href="https://docs.google.com/document/d/1oVDmfhzdJGoDtmlmd_kwgz_Q_VNyGfSCfNFsxltxILk/edit" target="_blank" rel="noopener">Foto fehlt? Wunsch für Karin eintragen</a></p><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: Ordner <a href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Redaktionsfotos</a>, Dateiname nach dem Muster „Ort oder Motiv – Foto Vorname Nachname.jpg“.</div>
 </main>
 <footer id="foot">Stand des Katalogs: 30.10.2026, 136 Fotos · Fragen an die Redaktionsleitung</footer>
 <script>
@@ -88,7 +88,8 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       '<span class="badge">'+esc(d.format)+'</span>'+
       '<div class="credit">'+esc(d.credit)+'</div>'+
       (d.hinweis?'<div class="hinweis">'+esc(d.hinweis)+'</div>':'')+
-      '<div class="btns"><a class="btn" href="'+esc(d.url)+'" target="_blank" rel="noopener">In Drive öffnen</a>'+
+      '<div class="btns">'+(d.ordner?'':'<a class="btn" href="https://drive.google.com/thumbnail?id='+esc(d.id)+'&sz=w'+(d.format==='Hoch'?'720':'1104')+'" target="_blank" rel="noopener" title="Öffnet das Bild in Newsletter-Größe – dann Rechtsklick → Bild speichern">Newsletter-Größe ('+(d.format==='Hoch'?'720':'1104')+' px)</a>')+
+      '<a class="btn secondary" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+(d.ordner?'Ordner öffnen':'Original in Drive')+'</a>'+
       '<button class="btn secondary" data-i="'+i+'">Credit kopieren</button></div>'+
       '</div></div>';
   }
@@ -109,7 +110,11 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
     });
     if(n){var f=document.getElementById('foot');f.textContent=f.textContent.replace(' · Fragen',' + '+n+' Fotos live aus Drive · Fragen');render();}
   }
-  if(LIVE_URL){fetch(LIVE_URL).then(function(r){return r.json();}).then(function(j){addLive(j.items||[]);}).catch(function(){});}
+  if(LIVE_URL){
+    try{var cached=JSON.parse(localStorage.getItem('gg_fotoliste')||'null');if(cached&&cached.items){addLive(cached.items);}}catch(e){}
+    var cnt0=document.getElementById('count');var orig=cnt0.textContent;cnt0.textContent=orig+' · Drive-Fotos werden geladen …';
+    fetch(LIVE_URL).then(function(r){return r.json();}).then(function(j){try{localStorage.setItem('gg_fotoliste',JSON.stringify({t:Date.now(),items:j.items||[]}));}catch(e){}addLive(j.items||[]);render();}).catch(function(){render();});
+  }
   function render(){
     var words=q.value.toLowerCase().split(/\s+/).filter(Boolean), b=sel.value;
     var out=[];
