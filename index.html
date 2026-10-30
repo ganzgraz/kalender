@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ganzgraz Eventkalender</title>
 <!-- Als App auf den Handy-Startbildschirm (Redaktionswunsch Okt. 2026) -->
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
 <meta name="theme-color" content="#4e2996">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -287,6 +287,13 @@
   .gg-card.highlight .gg-badge { background: var(--gg-purple); }
   .gg-card.highlight .gg-autor { background: #efe6fb; }
   .gg-card.highlight .gg-autor img, .gg-card.highlight .gg-autor .gg-initial { border-color: var(--gg-purple); }
+  /* Bezahlte/kooperative Platzierung: hervorgehoben, aber klar als Anzeige gekennzeichnet
+     (§ 26 MedienG) und optisch von den redaktionellen Tipps (orange/Gans) getrennt */
+  .gg-card.partner { border: 2px solid var(--gg-flieder); background: #faf7ff; }
+  .gg-card.partner .gg-badge.anzeige {
+    background: #fff; color: var(--gg-muted); border: 1px solid var(--gg-flieder);
+    font-family: 'Montserrat', sans-serif; font-weight: 600; letter-spacing: .06em;
+  }
   .gg-ganztags { font-size: 11.5px; line-height: 1.15; display: inline-block; color: var(--gg-muted); }
   .gg-time {
     font-family: 'League Spartan', sans-serif; font-weight: 700;
@@ -308,6 +315,21 @@
   .gg-app-hinweis strong { color: var(--gg-purple); }
   .gg-app-hinweis button.gg-app-install { margin-top: 10px; background: var(--gg-purple); color: #fff; border: none;
     border-radius: 999px; padding: 9px 18px 7px; font-family: 'League Spartan', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; }
+  /* Hinweis-Leiste "Als App" oben, nur am Handy, ab dem zweiten Besuch, wegklickbar */
+  .gg-app-leiste {
+    display: flex; align-items: center; gap: 8px; margin: 10px 0 0;
+    background: var(--gg-purple); color: #fff; border-radius: 12px; padding: 4px 6px 4px 14px;
+  }
+  .gg-app-leiste-text {
+    flex: 1; text-align: left; background: none; border: none; color: #fff; font-family: inherit;
+    font-size: 14px; line-height: 1.4; padding: 8px 0; cursor: pointer;
+  }
+  .gg-app-leiste-text strong { font-weight: 700; }
+  .gg-app-leiste-zu {
+    background: none; border: none; color: #fff; opacity: .8; font-size: 16px; cursor: pointer;
+    width: 36px; height: 36px; border-radius: 50%;
+  }
+  .gg-app-leiste-zu:hover { opacity: 1; background: rgba(255,255,255,.15); }
   /* Eigener Kopf, wenn der Kalender als App (ohne ganzgraz.at drumherum) läuft */
   .gg-app-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0 14px; }
   .gg-app-kopf img { height: 44px; width: auto; display: block; }
@@ -548,6 +570,10 @@
     </div>
     <div class="gg-submit-note">Mit dem Absenden akzeptierst du, dass wir deine Angaben zur Prüfung und Veröffentlichung verarbeiten. Mehr dazu in der <a href="https://ganzgraz.at/datenschutzerklaerung" target="_blank" rel="noopener">Datenschutzerklärung</a>.</div>
   </div>
+  <div class="gg-app-leiste" id="appLeiste" hidden>
+    <button type="button" class="gg-app-leiste-text" data-app-leiste>📲 <strong>Den Kalender als App am Handy?</strong> Einmal speichern – so geht's</button>
+    <button type="button" class="gg-app-leiste-zu" data-app-leiste-zu aria-label="Hinweis schließen">✕</button>
+  </div>
   <div class="gg-member">
     <div class="gg-member-text"><strong>ganzgraz ist ein Community-Medium und hat keinen Konzern im Rücken.</strong><br>Nur durch deinen Beitrag kann es unseren Kalender und den Graz-Newsletter geben.</div>
     <a class="gg-member-btn" href="https://ganzgraz.at/mitmachen" target="_blank" rel="noopener" data-z="member">Member werden</a>
@@ -599,7 +625,10 @@ function mapEvents(liste) {
     bild: e.bild || "",
     credit: e.credit || "",
     eintritt: e.eintritt || "",
-    empfehlung: e.empfehlung || "",
+    // "Medienpartner" ist KEINE Empfehlung, sondern eine Anzeige (Kooperation):
+    // eigener Wert, damit der Tipps-Filter und das Gänse-Abzeichen ihn nicht erfassen.
+    empfehlung: e.empfehlung === "Medienpartner" ? "" : (e.empfehlung || ""),
+    partner: e.empfehlung === "Medienpartner",
     source: e.source || "",
     autor: e.autor || "",
     // Öffnungszeiten mehrtägiger Events (Mo–Fr 8–18 Uhr o. Ä.). Bleibt leer,
@@ -886,7 +915,9 @@ function dayGroupsHtml(evs) {
   Object.keys(groups).sort().forEach(k => {
     const list = groups[k];
     // Wochenhighlight/Tipp zuerst
-    list.sort((a, b) => (b.empfehlung === "Wochenhighlight") - (a.empfehlung === "Wochenhighlight") || a.beginn - b.beginn);
+    // Reihenfolge am Tag: Wochenhighlight, dann Medienpartner-Anzeigen, dann nach Uhrzeit
+    list.sort((a, b) => (b.empfehlung === "Wochenhighlight") - (a.empfehlung === "Wochenhighlight") ||
+      (b.partner ? 1 : 0) - (a.partner ? 1 : 0) || a.beginn - b.beginn);
     html += '<div class="gg-day">' + fmtDayHeading(list[0].beginn) + "</div>";
     // Erst, was an diesem Tag ohnehin offen hat – dann die Termine des Tages.
     html += laufendTagHtml(k);
@@ -953,10 +984,12 @@ function absageBadge(ab) {
 function card(e, id) {
   const ab = absageVon(e.titel);
   if (ab) return absageKarte(e, ab);
-  const cls = e.empfehlung === "Wochenhighlight" ? "gg-card highlight" : e.empfehlung ? "gg-card tipp" : "gg-card";
+  const cls = e.empfehlung === "Wochenhighlight" ? "gg-card highlight" : e.empfehlung ? "gg-card tipp"
+    : e.partner ? "gg-card partner" : "gg-card";
   const badge = e.empfehlung === "Wochenhighlight"
     ? '<span class="gg-badge">' + GOOSE_SVG + "Wochenhighlight</span>"
-    : e.empfehlung ? '<span class="gg-badge">' + GOOSE_SVG + "ganzgraz-Tipp</span>" : "";
+    : e.empfehlung ? '<span class="gg-badge">' + GOOSE_SVG + "ganzgraz-Tipp</span>"
+    : e.partner ? '<span class="gg-badge anzeige" title="Bezahlte bzw. kooperative Platzierung – keine redaktionelle Empfehlung">Anzeige · Medienpartnerschaft</span>' : "";
   const g = e.gruppe && e.gruppe.length > 1 ? e.gruppe : null;   // mehrere Vorstellungen
   const meta = [];
   if (e.ort) meta.push("<strong>" + esc(e.ort) + "</strong>" + (e.adresse ? " · " + esc(e.adresse) : ""));
@@ -1675,6 +1708,27 @@ const istHandy = navigator.maxTouchPoints > 0 && window.matchMedia("(max-width: 
 let installPrompt = null;
 window.addEventListener("beforeinstallprompt", ev => { ev.preventDefault(); installPrompt = ev; });
 function appHinweisSinnvoll() { return istHandy && !istApp; }
+
+/* Leiste oben: Erstbesucher:innen sehen sie noch nicht (Besuchszähler im Browser),
+   ab dem zweiten Besuch schon. Weggeklickt = 30 Tage Ruhe. In der App nie. */
+(function () {
+  if (!appHinweisSinnvoll()) return;
+  let besuche = 0, zuBis = 0;
+  try {
+    besuche = Number(localStorage.getItem("ggAppBesuche") || 0) + 1;
+    localStorage.setItem("ggAppBesuche", String(besuche));
+    zuBis = Number(localStorage.getItem("ggAppLeisteZu") || 0);
+  } catch (err) { besuche = 2; }   // kein Speicher (privater Modus): einfach zeigen
+  if (besuche < 2 || Date.now() < zuBis) return;
+  const leiste = document.getElementById("appLeiste");
+  leiste.hidden = false;
+  zaehle("app_leiste");
+  leiste.querySelector("[data-app-leiste]").addEventListener("click", () => { zaehle("app_leiste_klick"); appHinweisZeigen(); });
+  leiste.querySelector("[data-app-leiste-zu]").addEventListener("click", () => {
+    leiste.hidden = true;
+    try { localStorage.setItem("ggAppLeisteZu", String(Date.now() + 30 * 86400000)); } catch (err) {}
+  });
+})();
 function appHinweisZeigen() {
   zaehle("app_hinweis");
   if (imIframe) { window.open(APP_URL, "_blank", "noopener"); return; }
