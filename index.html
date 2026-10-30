@@ -1657,7 +1657,9 @@ function untenNavZeichnen() {
     html += '<button type="button" class="gg-tab" data-gehe="' + nach + '">' + esc(tagLabel(nach)) + ' ›</button>';
   }
   html += '<button type="button" class="gg-oben" data-oben>Nach oben ↑</button>';
-  if (appHinweisSinnvoll()) html += '<div class="gg-unten-app"><button type="button" data-app>📲 Kalender als App aufs Handy</button></div>';
+  if (appHinweisSinnvoll()) html += '<div class="gg-unten-app">' + (imIframe
+    ? '<a href="' + APP_URL + '" target="_blank" rel="noopener" data-z="app_hinweis" style="color:var(--gg-muted);font-size:13.5px">📲 Kalender als App aufs Handy</a>'
+    : '<button type="button" data-app>📲 Kalender als App aufs Handy</button>') + '</div>';
   box.innerHTML = html;
 }
 function tagZeigen(k) {
@@ -1723,7 +1725,19 @@ function appHinweisSinnvoll() { return istHandy && !istApp; }
   const leiste = document.getElementById("appLeiste");
   leiste.hidden = false;
   zaehle("app_leiste");
-  leiste.querySelector("[data-app-leiste]").addEventListener("click", () => { zaehle("app_leiste_klick"); appHinweisZeigen(); });
+  const knopf = leiste.querySelector("[data-app-leiste]");
+  if (imIframe) {
+    // Im iframe auf ganzgraz.at blockt der Handy-Browser window.open() oft still.
+    // Ein echter Link mit target=_blank geht immer – also den Knopf durch einen ersetzen.
+    const a = document.createElement("a");
+    a.className = knopf.className; a.innerHTML = knopf.innerHTML;
+    a.href = APP_URL; a.target = "_blank"; a.rel = "noopener";
+    a.style.textDecoration = "none";
+    a.addEventListener("click", () => zaehle("app_leiste_klick"));
+    knopf.replaceWith(a);
+  } else {
+    knopf.addEventListener("click", () => { zaehle("app_leiste_klick"); appHinweisZeigen(); });
+  }
   leiste.querySelector("[data-app-leiste-zu]").addEventListener("click", () => {
     leiste.hidden = true;
     try { localStorage.setItem("ggAppLeisteZu", String(Date.now() + 30 * 86400000)); } catch (err) {}
