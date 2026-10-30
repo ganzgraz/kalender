@@ -22,6 +22,7 @@ header{background:#fff;color:var(--lila);border-bottom:4px solid var(--lila);pad
 .chip{background:#fff;color:var(--lila);border:2px solid var(--flieder);border-radius:999px;padding:7px 14px;cursor:pointer;font:inherit;font-size:14px;font-weight:500}
 .chip.active{background:var(--flieder);color:var(--lila);border-color:var(--flieder);font-weight:600}
 .controls select{padding:9px 12px;border:2px solid var(--flieder);border-radius:10px;font:inherit;font-size:14px;background:#fff;color:var(--text)}
+.btn.wunsch{flex:0 0 auto;background:var(--orange);color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;text-decoration:none;margin-left:auto}
 .count{font-size:14px;color:var(--lila);font-weight:600;white-space:nowrap}
 main{padding:20px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
@@ -59,12 +60,13 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 </div>
 <select id="bezirk"><option value="">Alle Bezirke</option></select>
 <span class="count" id="count"></span>
+<a class="btn wunsch" href="https://docs.google.com/document/d/1akqXdNYciOKU1WspPzZgsdKAPAIxhbgGYKoCl9DpJNE/edit" target="_blank" rel="noopener">Foto fehlt? Wunsch an Karin</a>
 </div>
 </div></header>
 <main class="wrap">
 <div class="grid" id="grid"></div>
 <div class="empty" id="empty" hidden>Keine Treffer.</div>
-<div class="info"><p style="margin:0 0 10px"><a class="btn" style="display:inline-block;flex:none" href="https://docs.google.com/document/d/1akqXdNYciOKU1WspPzZgsdKAPAIxhbgGYKoCl9DpJNE/edit" target="_blank" rel="noopener">Foto fehlt? Wunsch für Karin eintragen</a></p><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: Ordner <a href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Redaktionsfotos</a>, Dateiname nach dem Muster „Ort oder Motiv – Foto Vorname Nachname.jpg“.</div>
+<div class="info"><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: Ordner <a href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Redaktionsfotos</a>, Dateiname nach dem Muster „Ort oder Motiv – Foto Vorname Nachname.jpg“.</div>
 </main>
 <footer id="foot">Stand des Katalogs: 30.10.2026, 136 Fotos · Fragen an die Redaktionsleitung</footer>
 <script>
