@@ -88,18 +88,15 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <dialog id="up"><div class="in">
 <button class="zu" id="upzu" aria-label="Schließen">×</button>
 <h2>Eigenes Foto hochladen</h2>
-<ol>
-<li><strong>Dateiname bauen</strong>
+<label for="upfile">Foto</label><input type="file" id="upfile" accept="image/*">
 <label for="upwas">Was oder wo ist drauf?</label><input id="upwas" placeholder="z. B. Rathaus Hauptplatz">
 <label for="upwer">Wer hat fotografiert?</label><input id="upwer" placeholder="Vorname Nachname">
+<div class="klein" style="margin-top:8px">Wird gespeichert als:</div>
 <div class="name" id="upname">Rathaus Hauptplatz – Foto Vorname Nachname</div>
-<div class="row"><button class="btn secondary" id="upcopy" type="button">Namen kopieren</button></div>
-<div class="klein">Foto auf deinem Rechner so umbenennen (oder nach dem Hochladen in Drive: Rechtsklick → Umbenennen).</div></li>
-<li><strong>In den Ordner ziehen</strong>
-<div class="row"><a class="btn" href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Ordner „Redaktionsfotos“ öffnen</a></div>
-<div class="klein">Foto einfach ins Fenster ziehen. Nach ein paar Minuten ist es hier in der Suche.</div></li>
-</ol>
-<div class="klein"><strong>Nur</strong> eigene Fotos oder mit Erlaubnis der Fotograf:in. Erkennbare Personen nur mit deren OK.</div>
+<div class="row"><button class="btn" id="upgo" type="button">Hochladen</button></div>
+<div id="upstat" class="klein" style="margin-top:8px;min-height:1.4em"></div>
+<div class="klein" style="margin-top:10px"><strong>Nur</strong> eigene Fotos oder mit Erlaubnis der Fotograf:in. Erkennbare Personen nur mit deren OK.</div>
+<div class="klein" style="margin-top:6px">Viele Fotos auf einmal? <a href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Ordner „Redaktionsfotos“</a> öffnen und hineinziehen (Name: Was – Foto Vorname Nachname).</div>
 </div></dialog>
 <section id="karte"><iframe id="karteframe" title="ganzgraz-Karte" data-src="karte.html?embed=1"></iframe></section>
 <main class="wrap">
@@ -203,18 +200,40 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fallback);}else{fallback();}
   });
   (function(){
-    var d=document.getElementById('up'),was=document.getElementById('upwas'),wer=document.getElementById('upwer'),nm=document.getElementById('upname'),cp=document.getElementById('upcopy');
+    var d=document.getElementById('up'),fi=document.getElementById('upfile'),was=document.getElementById('upwas'),wer=document.getElementById('upwer'),nm=document.getElementById('upname'),go=document.getElementById('upgo'),st=document.getElementById('upstat'),neu=false;
     function name(){return (was.value.trim()||'Rathaus Hauptplatz')+' – Foto '+(wer.value.trim()||'Vorname Nachname');}
     function upd(){nm.textContent=name();}
+    function msg(t,farbe){st.textContent=t;st.style.color=farbe||'';}
     was.addEventListener('input',upd);wer.addEventListener('input',upd);
     try{var w=localStorage.getItem('gg_fotograf');if(w){wer.value=w;upd();}}catch(x){}
-    wer.addEventListener('change',function(){try{localStorage.setItem('gg_fotograf',wer.value.trim());}catch(x){}});
-    document.getElementById('upbtn').addEventListener('click',function(){if(d.showModal){d.showModal();}else{window.open("https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs","_blank");}});
-    document.getElementById('upzu').addEventListener('click',function(){d.close();});
-    d.addEventListener('click',function(e){if(e.target===d)d.close();});
-    cp.addEventListener('click',function(){var t=name();function ok(){cp.textContent='Kopiert!';cp.classList.add('done');setTimeout(function(){cp.textContent='Namen kopieren';cp.classList.remove('done');},1500);}
-      function fb(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');ok();}catch(x){alert(t);}document.body.removeChild(a);}
-      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,fb);}else{fb();}});
+    document.getElementById('upbtn').addEventListener('click',function(){msg('');if(d.showModal){d.showModal();}else{window.open("https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs","_blank");}});
+    function zu(){d.close();if(neu){try{localStorage.removeItem('gg_fotoliste');}catch(x){}location.reload();}}
+    document.getElementById('upzu').addEventListener('click',zu);
+    d.addEventListener('click',function(e){if(e.target===d)zu();});
+    fi.addEventListener('change',function(){msg('');var f=fi.files[0];if(!f)return;if(f.size>20*1024*1024){msg('Das Foto ist größer als 20 MB.','#c81e1e');return;}
+      var u=URL.createObjectURL(f),im=new Image();im.onload=function(){var b=Math.max(im.naturalWidth,im.naturalHeight);if(b&&b<1104){msg('Hinweis: Das Foto ist nur '+b+' px groß – im Newsletter kann es unscharf wirken.','#c81e1e');}URL.revokeObjectURL(u);};im.src=u;});
+    go.addEventListener('click',function(){
+      var f=fi.files[0];
+      if(!f){msg('Bitte zuerst ein Foto auswählen.','#c81e1e');return;}
+      if(!was.value.trim()||!wer.value.trim()){msg('Bitte ausfüllen, was drauf ist und wer fotografiert hat.','#c81e1e');return;}
+      if(f.size>20*1024*1024){msg('Das Foto ist größer als 20 MB.','#c81e1e');return;}
+      try{localStorage.setItem('gg_fotograf',wer.value.trim());}catch(x){}
+      go.disabled=true;go.textContent='Lädt hoch …';msg('Bitte warten, das kann bei großen Fotos ein paar Sekunden dauern.');
+      var r=new FileReader();
+      r.onload=function(){
+        var data=String(r.result).split(',')[1]||'';
+        fetch(LIVE_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({was:was.value,wer:wer.value,mime:f.type||'image/jpeg',dateiname:f.name,data:data})})
+        .then(function(x){return x.json();})
+        .then(function(j){
+          if(j&&j.ok){neu=true;msg('✓ Hochgeladen als „'+j.name+'“. Nach dem Schließen lädt die Seite neu, dann ist das Foto in der Suche.','#2e7d32');fi.value='';was.value='';upd();}
+          else{msg((j&&j.fehler)||'Upload fehlgeschlagen.','#c81e1e');}
+        })
+        .catch(function(){msg('Upload gerade nicht möglich – bitte über den Ordner „Redaktionsfotos“ (Link unten) hochladen.','#c81e1e');})
+        .then(function(){go.disabled=false;go.textContent='Hochladen';});
+      };
+      r.onerror=function(){go.disabled=false;go.textContent='Hochladen';msg('Die Datei konnte nicht gelesen werden.','#c81e1e');};
+      r.readAsDataURL(f);
+    });
   })();
   render();
 })();
