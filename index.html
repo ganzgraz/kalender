@@ -1676,7 +1676,7 @@ function untenNavZeichnen() {
   }
   html += '<button type="button" class="gg-oben" data-oben>Nach oben ↑</button>';
   if (appHinweisSinnvoll()) html += '<div class="gg-unten-app">' + (imIframe
-    ? '<a href="' + APP_URL + '" target="_blank" rel="noopener" data-z="app_hinweis" style="color:var(--gg-muted);font-size:13.5px">📲 Kalender als App aufs Handy</a>'
+    ? '<a href="' + APP_URL + '" target="' + APP_ZIEL + '" rel="noopener" data-z="app_hinweis" style="color:var(--gg-muted);font-size:13.5px">📲 Kalender als App aufs Handy</a>'
     : '<button type="button" data-app>📲 Kalender als App aufs Handy</button>') + '</div>';
   box.innerHTML = html;
 }
@@ -1724,6 +1724,10 @@ render = function () { renderOhneUnten(); untenNavZeichnen(); };
 const APP_URL = "https://ganzgraz.github.io/kalender/?installieren=1";
 const istApp = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 const imIframe = window.parent !== window;
+/* iPhone/iPad: Safari (und In-App-Browser wie Instagram) ignorieren target=_blank aus einem
+   fremden iframe oft still. target=_top lädt stattdessen die ganze Seite neu – das geht immer. */
+const IST_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const APP_ZIEL = IST_IOS ? "_top" : "_blank";
 const istHandy = navigator.maxTouchPoints > 0 && window.matchMedia("(max-width: 900px)").matches;
 let installPrompt = null;
 window.addEventListener("beforeinstallprompt", ev => { ev.preventDefault(); installPrompt = ev; });
@@ -1749,7 +1753,7 @@ function appHinweisSinnvoll() { return istHandy && !istApp; }
     // Ein echter Link mit target=_blank geht immer – also den Knopf durch einen ersetzen.
     const a = document.createElement("a");
     a.className = knopf.className; a.innerHTML = knopf.innerHTML;
-    a.href = APP_URL; a.target = "_blank"; a.rel = "noopener";
+    a.href = APP_URL; a.target = APP_ZIEL; a.rel = "noopener";
     a.style.textDecoration = "none";
     a.addEventListener("click", () => zaehle("app_leiste_klick"));
     knopf.replaceWith(a);
@@ -1763,12 +1767,16 @@ function appHinweisSinnvoll() { return istHandy && !istApp; }
 })();
 function appHinweisZeigen() {
   zaehle("app_hinweis");
-  if (imIframe) { window.open(APP_URL, "_blank", "noopener"); return; }
+  if (imIframe) {
+    if (IST_IOS) { try { window.top.location.href = APP_URL; } catch (err) { location.href = APP_URL; } }
+    else window.open(APP_URL, "_blank", "noopener");
+    return;
+  }
   const box = document.getElementById("appHinweis");
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const ios = IST_IOS;
   box.innerHTML = '<strong>Den Kalender wie eine App am Handy haben:</strong><br>' +
     (ios
-      ? 'In Safari unten auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach oben) tippen, dann <strong>„Zum Home-Bildschirm“</strong> wählen.'
+      ? 'In Safari auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach oben – bei neuen iPhones zuerst unten rechts auf <strong>•••</strong>) tippen, dann <strong>„Zum Home-Bildschirm“</strong> wählen.'
       : 'Im Browser-Menü (⋮ oben rechts) <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> wählen.') +
     (installPrompt ? '<br><button type="button" class="gg-app-install">Jetzt installieren</button>' : '');
   box.hidden = false;
