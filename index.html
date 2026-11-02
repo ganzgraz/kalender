@@ -289,10 +289,25 @@
   .gg-card.highlight .gg-autor img, .gg-card.highlight .gg-autor .gg-initial { border-color: var(--gg-purple); }
   /* Bezahlte/kooperative Platzierung: hervorgehoben, aber klar als Anzeige gekennzeichnet
      (§ 26 MedienG) und optisch von den redaktionellen Tipps (orange/Gans) getrennt */
-  .gg-card.partner { border: 2px solid var(--gg-flieder); background: #faf7ff; }
+  /* Optik wie der "ganzgraz-Extra-Tipp" im Newsletter: zartorange Fläche, oben ein
+     Balken "Anzeige", darunter die lila Rubrik-Zeile */
+  .gg-card.partner {
+    flex-wrap: wrap; border: 1px solid var(--gg-pastellorange); background: #fff4e8;
+    padding-top: 0; overflow: hidden;
+  }
+  .gg-card.partner .gg-anzeige-bar {
+    flex-basis: calc(100% + 32px); margin: 0 -16px 10px; padding: 7px 16px 5px;
+    background: #ffe3c6; border-bottom: 1px solid var(--gg-pastellorange);
+    text-align: center; font-family: 'League Spartan', sans-serif; font-weight: 700;
+    font-size: 14px; color: var(--gg-purple); letter-spacing: .02em;
+  }
+  .gg-card.partner .gg-anzeige-bar small {
+    display: block; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11.5px;
+    color: var(--gg-purple); letter-spacing: .03em; margin-top: 1px;
+  }
   .gg-card.partner .gg-badge.anzeige {
-    background: #fff; color: var(--gg-muted); border: 1px solid var(--gg-flieder);
-    font-family: 'Montserrat', sans-serif; font-weight: 600; letter-spacing: .06em;
+    background: var(--gg-purple); color: #fff;
+    font-family: 'Montserrat', sans-serif; font-weight: 600; letter-spacing: .04em;
   }
   .gg-ganztags { font-size: 11.5px; line-height: 1.15; display: inline-block; color: var(--gg-muted); }
   .gg-time {
@@ -989,7 +1004,9 @@ function card(e, id) {
   const badge = e.empfehlung === "Wochenhighlight"
     ? '<span class="gg-badge">' + GOOSE_SVG + "Wochenhighlight</span>"
     : e.empfehlung ? '<span class="gg-badge">' + GOOSE_SVG + "ganzgraz-Tipp</span>"
-    : e.partner ? '<span class="gg-badge anzeige" title="Bezahlte bzw. kooperative Platzierung – keine redaktionelle Empfehlung">Anzeige · Medienpartnerschaft</span>' : "";
+    : e.partner ? '<span class="gg-badge anzeige" title="Bezahlte bzw. kooperative Platzierung – keine redaktionelle Empfehlung">Medienpartnerschaft</span>' : "";
+  // Balken oben wie im Newsletter ("Anzeige" + Rubrik), nur bei Partner-Karten
+  const anzeigeBar = e.partner ? '<div class="gg-anzeige-bar">Anzeige<small>ganzgraz-Extra-Tipp</small></div>' : "";
   const g = e.gruppe && e.gruppe.length > 1 ? e.gruppe : null;   // mehrere Vorstellungen
   const meta = [];
   if (e.ort) meta.push("<strong>" + esc(e.ort) + "</strong>" + (e.adresse ? " · " + esc(e.adresse) : ""));
@@ -1049,6 +1066,7 @@ function card(e, id) {
   links.push('<button type="button" class="gg-teilbtn" onclick="teilen(this,' + e.idx + ')">' + TEIL_SVG + 'Teilen</button>');
   // data-eid: alle Datensätze der Karte, damit geteilte Links jeder Vorstellung hierher finden
   return '<div class="' + cls + '" data-eid="' + esc(g ? g.map(x => x.id).join(" ") : e.id) + '">' +
+    anzeigeBar +
     '<div class="gg-time">' + (g
       ? g.map(x => '<span class="gg-zeit-zeile">' + fmtTime(x.beginn) + '</span>').join("")
       : istMitternachtWien(e.beginn) ? '<span class="gg-ganztags">ganz-<br>tägig</span>' : fmtTime(e.beginn)) + "</div>" +
