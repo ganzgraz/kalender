@@ -52,7 +52,14 @@ main{padding:20px}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:10px}
 .thumb.folder{display:flex;align-items:center;justify-content:center;background:var(--flieder);color:var(--lila);font-family:"League Spartan",sans-serif;font-weight:700;font-size:22px}
 .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:5px;flex:1}
-.datei{font-weight:600;font-size:15px;word-break:break-word}
+.titel{font-weight:600;font-size:15px;word-break:break-word}
+.datei{font-size:12px;color:#888;word-break:break-word}
+.badge.neu{background:#2e7d32}
+.badge.lila{background:var(--lila)}
+.ext-on{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--lila);font-weight:500;cursor:pointer}
+#exthead{margin:34px 0 6px;color:var(--lila);font-size:22px}
+#extinfo{font-size:13px;color:#555;margin-bottom:14px}
+#up select{width:100%;padding:8px 10px;border:2px solid var(--flieder);border-radius:8px;font:inherit;font-size:14px;background:#fff}
 .ort{font-size:13px;color:#555}
 .motiv{font-size:14px}
 .badge{display:inline-block;background:var(--orange);color:#fff;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;align-self:flex-start}
@@ -80,6 +87,7 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <button class="chip active" data-f="">alle</button>
 </div>
 <select id="bezirk"><option value="">Alle Bezirke</option></select>
+<label class="ext-on"><input type="checkbox" id="extcb"> auch freie Fotos (Wikimedia)</label>
 <span class="count" id="count"></span>
 <button class="btn upload" id="upbtn" type="button">Eigenes Foto hochladen</button>
 <a class="btn wunsch" href="https://docs.google.com/document/d/1akqXdNYciOKU1WspPzZgsdKAPAIxhbgGYKoCl9DpJNE/edit" target="_blank" rel="noopener">Foto fehlt? Wunsch an Karin</a>
@@ -90,6 +98,7 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <h2>Eigenes Foto hochladen</h2>
 <label for="upfile">Foto</label><input type="file" id="upfile" accept="image/*">
 <label for="upwas">Was oder wo ist drauf?</label><input id="upwas" placeholder="z. B. Rathaus Hauptplatz">
+<label for="upbez">Bezirk (optional)</label><select id="upbez"><option value="">– nicht angeben –</option><option>I Innere Stadt</option><option>II St. Leonhard</option><option>III Geidorf</option><option>IV Lend</option><option>V Gries</option><option>VI Jakomini</option><option>VII Liebenau</option><option>VIII St. Peter</option><option>IX Waltendorf</option><option>X Ries</option><option>XI Mariatrost</option><option>XII Andritz</option><option>XIII Gösting</option><option>XIV Eggenberg</option><option>XV Wetzelsdorf</option><option>XVI Straßgang</option><option>XVII Puntigam</option></select>
 <label for="upwer">Wer hat fotografiert?</label><input id="upwer" placeholder="Vorname Nachname">
 <div class="klein" style="margin-top:8px">Wird gespeichert als:</div>
 <div class="name" id="upname">Rathaus Hauptplatz – Foto Vorname Nachname</div>
@@ -102,6 +111,7 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <main class="wrap">
 <div class="grid" id="grid"></div>
 <div class="empty" id="empty" hidden>Keine Treffer. Für Orte und Adressen: oben „Karte erzeugen“ – oder Wunsch an Karin.</div>
+<section id="ext" hidden><h2 id="exthead">Freie Fotos aus Wikimedia Commons</h2><div id="extinfo">Extern, nicht von ganzgraz. Credit mit Name, Lizenz und Link immer übernehmen (Button „Credit kopieren“). Erkennbare Personen: Recht am eigenen Bild trotzdem prüfen. Im Zweifel die Seite auf Commons öffnen.</div><div class="grid" id="extgrid"></div></section>
 <div class="info"><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: oben „Eigenes Foto hochladen“.</div>
 </main>
 <footer id="foot">Stand des Katalogs: 30.10.2026, 136 Fotos · Fragen an die Redaktionsleitung</footer>
@@ -114,6 +124,11 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   var fmt='';
   var bez={};DATA.forEach(function(d){if(d.bezirk)bez[d.bezirk]=1;});
   Object.keys(bez).sort().forEach(function(b){var o=document.createElement('option');o.value=b;o.textContent=b;sel.appendChild(o);});
+  var BEZIRKE=["I Innere Stadt","II St. Leonhard","III Geidorf","IV Lend","V Gries","VI Jakomini","VII Liebenau","VIII St. Peter","IX Waltendorf","X Ries","XI Mariatrost","XII Andritz","XIII Gösting","XIV Eggenberg","XV Wetzelsdorf","XVI Straßgang","XVII Puntigam"];
+  var SYN=[['bim','straßenbahn','strassenbahn','tram','öffi','graz linien','holding'],['rathaus','gemeinderat','bürgermeisterin','magistrat','stadtregierung'],['kahr','bürgermeisterin','elke kahr'],['uhrturm','schloßberg','schlossberg'],['hauptbahnhof','bahnhof','hbf'],['mur','murinsel','murufer','fluss'],['landhaus','landtag','landesregierung'],['krankenhaus','spital','lkh','klinikum','medizin'],['fahrrad','radweg','radfahr','radl'],['markt','bauernmarkt','lendplatz','kaiser-josef'],['park','stadtpark','augarten','grünfläche','grün'],['uni','universität','hochschule','campus'],['wohnen','wohnung','wohnbau','gemeindebau','siedlung'],['baustelle','umbau','sanierung'],['essen','gastro','lokal','restaurant','café','cafe','beisl'],['schule','volksschule','gymnasium','bildung'],['winter','schnee','advent','weihnacht','christkindl'],['sommer','hitze','bad ','freibad','bäder'],['verkehr','stau','auto','straße'],['kirche','dom','pfarre']];
+  function norm(t){return String(t||'').toLowerCase().replace(/ß/g,'ss');}
+  function alts(w){var a=[w];SYN.forEach(function(g){var gg=g.map(norm);for(var i=0;i<gg.length;i++){var x=gg[i].trim();if(x===w||(w.length>=4&&x.indexOf(w)===0&&w.length>=x.length-2)){gg.forEach(function(y){y=y.trim();if(a.indexOf(y)<0)a.push(y);});break;}}});return a;}
+  function istNeu(d){if(!d.modified)return false;var t=Date.parse(d.modified);return !isNaN(t)&&(Date.now()-t)<14*864e5;}
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function card(d,i){
     var thumb = d.ordner
@@ -121,10 +136,10 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       : '<a class="thumb" href="'+esc(d.url)+'" target="_blank" rel="noopener"><img loading="lazy" src="https://drive.google.com/thumbnail?id='+esc(d.id)+'&sz=w400" alt="'+esc(d.motiv)+'"></a>';
     var ortz=[d.ort,d.bezirk].filter(Boolean).join(' · ');
     return '<div class="card">'+thumb+'<div class="body">'+
-      '<div class="datei">'+esc(d.datei)+'</div>'+
+      '<div class="titel">'+esc(d.motiv||d.datei)+'</div>'+
       (ortz?'<div class="ort">'+esc(ortz)+'</div>':'')+
-      '<div class="motiv">'+esc(d.motiv)+'</div>'+
-      '<span class="badge">'+esc(d.format)+'</span>'+
+      '<div class="datei">'+esc(d.datei)+'</div>'+
+      '<div><span class="badge">'+esc(d.format)+'</span>'+(istNeu(d)?' <span class="badge neu">neu</span>':'')+'</div>'+
       '<div class="credit">'+esc(d.credit)+'</div>'+
       (d.hinweis?'<div class="hinweis">'+esc(d.hinweis)+'</div>':'')+
       '<div class="btns">'+(d.ordner?'':'<a class="btn" href="https://drive.google.com/thumbnail?id='+esc(d.id)+'&sz=w'+(d.format==='Hoch'?'720':'1104')+'" target="_blank" rel="noopener" title="Öffnet das Bild in Newsletter-Größe – dann Rechtsklick → Bild speichern">Newsletter-Größe ('+(d.format==='Hoch'?'720':'1104')+' px)</a>')+
@@ -157,13 +172,17 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       if(it.folder==='Redaktionsfotos'){
         var m=it.name.replace(/\.[a-z0-9]+$/i,'').match(/^(.*?)\s*[–\-]\s*Foto\s+(.+)$/i);
         if(!m)return; // ohne "– Foto Name" keine Rechte ausgewiesen
-        d={datei:it.name,ort:'',bezirk:'',motiv:m[1].trim(),format:'Redaktionsfoto',credit:'Foto: '+m[2].trim(),hinweis:'Format prüfen; nur eigenes Foto der Autor:in',url:'https://drive.google.com/file/d/'+it.id+'/view',id:it.id,ordner:false};
+        var mot=m[1].trim(),bz='',bm=mot.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+        if(bm&&BEZIRKE.indexOf(bm[2].trim())>=0){mot=bm[1].trim();bz=bm[2].trim();}
+        var wer=m[2].trim().replace(/\s*\(\d+\)$/,'');
+        d={datei:it.name,ort:'',bezirk:bz,motiv:mot,modified:it.modified||'',format:'Redaktionsfoto',credit:'Foto: '+wer,hinweis:'Format prüfen; nur eigenes Foto der Autor:in',url:'https://drive.google.com/file/d/'+it.id+'/view',id:it.id,ordner:false};
       }else{
-        d={datei:it.name,ort:it.folder,bezirk:'',motiv:'Porträt/Termin: '+it.folder,format:'Politiker:in',credit:'Foto: Karin Daninger',hinweis:'Original – vor Upload auf max. 1 MB verkleinern',url:'https://drive.google.com/file/d/'+it.id+'/view',id:it.id,ordner:false};
+        d={datei:it.name,ort:it.folder,bezirk:'',modified:it.modified||'',motiv:'Porträt/Termin: '+it.folder,format:'Politiker:in',credit:'Foto: Karin Daninger',hinweis:'Original – vor Upload auf max. 1 MB verkleinern',url:'https://drive.google.com/file/d/'+it.id+'/view',id:it.id,ordner:false};
       }
       DATA.push(d);known[it.id]=1;n++;
     });
-    if(n){var f=document.getElementById('foot');f.textContent=f.textContent.replace(' · Fragen',' + '+n+' Fotos live aus Drive · Fragen');render();}
+    if(n){var have={};Array.prototype.forEach.call(sel.options,function(o){have[o.value]=1;});DATA.forEach(function(d){if(d.bezirk&&!have[d.bezirk]){have[d.bezirk]=1;var o=document.createElement('option');o.value=d.bezirk;o.textContent=d.bezirk;sel.appendChild(o);}});
+      var f=document.getElementById('foot');f.textContent=f.textContent.replace(' · Fragen',' + '+n+' Fotos live aus Drive · Fragen');render();}
   }
   function ladeDrive(){
     if(!LIVE_URL)return;
@@ -175,20 +194,75 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
     fetch(KATALOG_CSV).then(function(r){return r.text();}).then(function(t){var k=katalogAusSheet(t);if(k){DATA.length=0;k.forEach(function(d){DATA.push(d);});var f=document.getElementById('foot');f.textContent='Katalog live aus Google Sheet: '+k.filter(function(d){return !d.ordner;}).length+' Fotos · Fragen an die Redaktionsleitung';var b2={};DATA.forEach(function(d){if(d.bezirk)b2[d.bezirk]=1;});sel.innerHTML='<option value="">Alle Bezirke</option>';Object.keys(b2).sort().forEach(function(b){var o=document.createElement('option');o.value=b;o.textContent=b;sel.appendChild(o);});render();}}).catch(function(){}).then(ladeDrive);
   }else{ladeDrive();}
   function render(){
-    var words=q.value.toLowerCase().split(/\s+/).filter(Boolean), b=sel.value;
+    var words=norm(q.value).split(/\s+/).filter(Boolean), b=sel.value;
     var out=[];
     DATA.forEach(function(d,i){
       if(fmt && d.format!==fmt) return;
       if(b && d.bezirk!==b) return;
-      var hay=(d.datei+' '+d.ort+' '+d.bezirk+' '+d.motiv+' '+d.hinweis).toLowerCase();
-      for(var k=0;k<words.length;k++){ if(hay.indexOf(words[k])<0) return; }
-      out.push(card(d,i));
+      var hay=norm(d.datei+' '+d.ort+' '+d.bezirk+' '+d.motiv+' '+d.hinweis+' '+d.credit)+' ';
+      for(var k=0;k<words.length;k++){ var al=alts(words[k]),hit=false; for(var m=0;m<al.length;m++){ if(hay.indexOf(al[m])>=0){hit=true;break;} } if(!hit) return; }
+      out.push({h:card(d,i),n:istNeu(d),m:d.modified||''});
     });
+    out.sort(function(a,b){if(a.n!==b.n)return a.n?-1:1;if(a.n&&b.n)return a.m<b.m?1:-1;return 0;});
+    out=out.map(function(o){return o.h;});
     grid.innerHTML=out.join('');
     empty.hidden=out.length>0;
     count.textContent=out.length+' von '+DATA.length+' Treffern';
   }
   document.querySelector('.tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(x){x.classList.toggle('active',x===t);});var k=t.getAttribute('data-t')==='karte';document.body.classList.toggle('show-karte',k);if(k){var f=document.getElementById('karteframe');if(!f.src)f.src=f.getAttribute('data-src');}});
+  var extcb=document.getElementById('extcb'),extsec=document.getElementById('ext'),extgrid=document.getElementById('extgrid'),EXT=[],extTimer=null,extSeq=0;
+  try{extcb.checked=localStorage.getItem('gg_commons')==='1';}catch(x){}
+  function strip(h){var t=document.createElement('div');t.innerHTML=String(h||'');return (t.textContent||'').replace(/\s+/g,' ').trim();}
+  function lizenzOk(l){return /^(cc0|public domain|gemeinfrei|pd|cc by(-sa)?( \d(\.\d)?)?( [a-z]{2})?$)/i.test(l||'');}
+  function extCard(e,i){
+    return '<div class="card"><a class="thumb" href="'+esc(e.seite)+'" target="_blank" rel="noopener"><img loading="lazy" src="'+esc(e.thumb)+'" alt="'+esc(e.titel)+'"></a><div class="body">'+
+      '<div class="titel">'+esc(e.titel)+'</div>'+
+      '<div class="ort">'+esc(e.w+' × '+e.h+' px')+'</div>'+
+      '<div><span class="badge">extern</span> <span class="badge lila">'+esc(e.lizenz)+'</span></div>'+
+      '<div class="credit">'+esc(e.credit)+'</div>'+
+      '<div class="btns"><a class="btn" href="'+esc(e.nl)+'" target="_blank" rel="noopener" title="Öffnet das Bild in Newsletter-Größe – dann Rechtsklick → Bild speichern">Newsletter-Größe ('+(e.h>e.w?'720':'1104')+' px)</a>'+
+      '<a class="btn secondary" href="'+esc(e.seite)+'" target="_blank" rel="noopener">Seite auf Commons</a>'+
+      '<button class="btn secondary" data-e="'+i+'">Credit kopieren</button></div></div></div>';
+  }
+  function ladeCommons(){
+    var raw=q.value.trim();
+    if(!extcb.checked||raw.length<3){extsec.hidden=true;extgrid.innerHTML='';return;}
+    var such=/graz/i.test(raw)?raw:raw+' Graz';
+    var url='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=40&gsrsearch='+encodeURIComponent(such+' filetype:bitmap')+'&prop=imageinfo&iiprop=url|size|extmetadata|mime&iiurlwidth=400&iiextmetadatafilter=Artist|LicenseShortName|LicenseUrl|ObjectName|Credit';
+    var my=++extSeq;extsec.hidden=false;extgrid.innerHTML='<div class="empty">Suche auf Wikimedia Commons …</div>';
+    fetch(url).then(function(r){return r.json();}).then(function(j){
+      if(my!==extSeq)return;
+      var pages=(j.query&&j.query.pages)?Object.keys(j.query.pages).map(function(k){return j.query.pages[k];}):[];
+      pages.sort(function(a,b){return (a.index||0)-(b.index||0);});
+      EXT=[];
+      pages.forEach(function(pg){
+        var ii=pg.imageinfo&&pg.imageinfo[0];if(!ii)return;
+        if(!/^image\/(jpeg|png|webp)/.test(ii.mime||''))return;
+        if(Math.max(ii.width,ii.height)<1104)return;
+        var md=ii.extmetadata||{},g=function(k){return md[k]?strip(md[k].value):'';};
+        var liz=g('LicenseShortName');if(!lizenzOk(liz))return;
+        var wer=g('Artist')||'unbekannt';if(wer.length>80)wer=wer.slice(0,80)+'…';
+        var datei=pg.title.replace(/^(File|Datei):/,'');
+        var titel=(g('ObjectName')||datei.replace(/\.[a-z0-9]+$/i,'').replace(/_/g,' '));
+        var frei=/cc0|public domain|gemeinfrei|^pd/i.test(liz);
+        var lurl=g('LicenseUrl')||(md.LicenseUrl&&md.LicenseUrl.value)||'';
+        var credit='Foto: '+wer+' / Wikimedia Commons'+(frei?' (gemeinfrei)':', '+liz+(lurl?' ('+lurl+')':''));
+        var w=ii.height>ii.width?720:1104;
+        EXT.push({titel:titel,thumb:ii.thumburl||ii.url,seite:ii.descriptionurl,nl:'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(datei)+'?width='+w,w:ii.width,h:ii.height,lizenz:liz,credit:credit});
+      });
+      extgrid.innerHTML=EXT.length?EXT.map(extCard).join(''):'<div class="empty">Auf Commons nichts Passendes in Newsletter-Qualität mit freier Lizenz.</div>';
+    }).catch(function(){if(my===extSeq)extgrid.innerHTML='<div class="empty">Wikimedia Commons gerade nicht erreichbar.</div>';});
+  }
+  function extPlan(){clearTimeout(extTimer);extTimer=setTimeout(ladeCommons,700);}
+  extcb.addEventListener('change',function(){try{localStorage.setItem('gg_commons',extcb.checked?'1':'0');}catch(x){}ladeCommons();});
+  q.addEventListener('input',extPlan);
+  extgrid.addEventListener('click',function(e){
+    var btn=e.target.closest('button[data-e]');if(!btn)return;
+    var txt=EXT[+btn.getAttribute('data-e')].credit;
+    function ok(){btn.textContent='Kopiert!';btn.classList.add('done');setTimeout(function(){btn.textContent='Credit kopieren';btn.classList.remove('done');},1500);}
+    function fb(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(x){alert(txt);}document.body.removeChild(t);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fb);}else{fb();}
+  });
   q.addEventListener('input',render);
   sel.addEventListener('change',render);
   chips.addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;fmt=c.getAttribute('data-f');Array.prototype.forEach.call(chips.children,function(x){x.classList.toggle('active',x===c);});render();});
@@ -201,10 +275,12 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   });
   (function(){
     var d=document.getElementById('up'),fi=document.getElementById('upfile'),was=document.getElementById('upwas'),wer=document.getElementById('upwer'),nm=document.getElementById('upname'),go=document.getElementById('upgo'),st=document.getElementById('upstat'),neu=false;
-    function name(){return (was.value.trim()||'Rathaus Hauptplatz')+' – Foto '+(wer.value.trim()||'Vorname Nachname');}
+    var bzs=document.getElementById('upbez');
+    function wasMitBez(){var w=was.value.trim()||'Rathaus Hauptplatz';return bzs.value?w+' ('+bzs.value+')':w;}
+    function name(){return wasMitBez()+' – Foto '+(wer.value.trim()||'Vorname Nachname');}
     function upd(){nm.textContent=name();}
     function msg(t,farbe){st.textContent=t;st.style.color=farbe||'';}
-    was.addEventListener('input',upd);wer.addEventListener('input',upd);
+    was.addEventListener('input',upd);wer.addEventListener('input',upd);bzs.addEventListener('change',upd);
     try{var w=localStorage.getItem('gg_fotograf');if(w){wer.value=w;upd();}}catch(x){}
     document.getElementById('upbtn').addEventListener('click',function(){msg('');if(d.showModal){d.showModal();}else{window.open("https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs","_blank");}});
     function zu(){d.close();if(neu){try{localStorage.removeItem('gg_fotoliste');}catch(x){}location.reload();}}
@@ -222,10 +298,10 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       var r=new FileReader();
       r.onload=function(){
         var data=String(r.result).split(',')[1]||'';
-        fetch(LIVE_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({was:was.value,wer:wer.value,mime:f.type||'image/jpeg',dateiname:f.name,data:data})})
+        fetch(LIVE_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({was:wasMitBez(),wer:wer.value,mime:f.type||'image/jpeg',dateiname:f.name,data:data})})
         .then(function(x){return x.json();})
         .then(function(j){
-          if(j&&j.ok){neu=true;msg('✓ Hochgeladen als „'+j.name+'“. Nach dem Schließen lädt die Seite neu, dann ist das Foto in der Suche.','#2e7d32');fi.value='';was.value='';upd();}
+          if(j&&j.ok){neu=true;msg('✓ Hochgeladen als „'+j.name+'“. Nach dem Schließen lädt die Seite neu, dann ist das Foto in der Suche.','#2e7d32');fi.value='';was.value='';bzs.value='';upd();}
           else{msg((j&&j.fehler)||'Upload fehlgeschlagen.','#c81e1e');}
         })
         .catch(function(){msg('Upload gerade nicht möglich – bitte über den Ordner „Redaktionsfotos“ (Link unten) hochladen.','#c81e1e');})
