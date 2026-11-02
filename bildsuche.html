@@ -23,6 +23,20 @@ header{background:#fff;color:var(--lila);border-bottom:4px solid var(--lila);pad
 .chip.active{background:var(--flieder);color:var(--lila);border-color:var(--flieder);font-weight:600}
 .controls select{padding:9px 12px;border:2px solid var(--flieder);border-radius:10px;font:inherit;font-size:14px;background:#fff;color:var(--text)}
 .btn.wunsch{flex:0 0 auto;background:var(--orange);color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;text-decoration:none;margin-left:auto}
+.btn.upload{flex:0 0 auto;background:var(--lila);color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;border:none;cursor:pointer;margin-left:auto}
+.btn.upload+.btn.wunsch{margin-left:0}
+dialog#up{border:none;border-radius:16px;padding:0;max-width:520px;width:calc(100% - 24px);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+dialog#up::backdrop{background:rgba(78,41,150,.35)}
+#up .in{padding:22px 24px}
+#up h2{color:var(--lila);font-size:24px;margin-bottom:12px}
+#up ol{margin:0;padding-left:22px}
+#up li{margin-bottom:14px}
+#up label{display:block;font-size:13px;color:#555;margin-top:6px}
+#up input{width:100%;padding:8px 10px;border:2px solid var(--flieder);border-radius:8px;font:inherit;font-size:14px}
+#up .name{background:var(--grau);border-radius:8px;padding:8px 10px;font-weight:600;margin-top:8px;word-break:break-word}
+#up .klein{font-size:13px;color:#555}
+#up .zu{float:right;background:none;border:none;font-size:26px;line-height:1;color:var(--lila);cursor:pointer}
+#up .row{display:flex;gap:8px;margin-top:8px}
 .tabs{display:flex;gap:6px}
 .tab{font:inherit;font-size:15px;font-weight:600;background:#fff;color:var(--lila);border:2px solid var(--flieder);border-radius:999px;padding:8px 18px;cursor:pointer}
 .tab.active{background:var(--lila);color:#fff;border-color:var(--lila)}
@@ -67,14 +81,31 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 </div>
 <select id="bezirk"><option value="">Alle Bezirke</option></select>
 <span class="count" id="count"></span>
+<button class="btn upload" id="upbtn" type="button">📤 Eigenes Foto hochladen</button>
 <a class="btn wunsch" href="https://docs.google.com/document/d/1akqXdNYciOKU1WspPzZgsdKAPAIxhbgGYKoCl9DpJNE/edit" target="_blank" rel="noopener">Foto fehlt? Wunsch an Karin</a>
 </div>
 </div></header>
+<dialog id="up"><div class="in">
+<button class="zu" id="upzu" aria-label="Schließen">×</button>
+<h2>Eigenes Foto hochladen</h2>
+<ol>
+<li><strong>Dateiname bauen</strong>
+<label for="upwas">Was oder wo ist drauf?</label><input id="upwas" placeholder="z. B. Rathaus Hauptplatz">
+<label for="upwer">Wer hat fotografiert?</label><input id="upwer" placeholder="Vorname Nachname">
+<div class="name" id="upname">Rathaus Hauptplatz – Foto Vorname Nachname</div>
+<div class="row"><button class="btn secondary" id="upcopy" type="button">Namen kopieren</button></div>
+<div class="klein">Foto auf deinem Rechner so umbenennen (oder nach dem Hochladen in Drive: Rechtsklick → Umbenennen).</div></li>
+<li><strong>In den Ordner ziehen</strong>
+<div class="row"><a class="btn" href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Ordner „Redaktionsfotos“ öffnen</a></div>
+<div class="klein">Foto einfach ins Fenster ziehen. Nach ein paar Minuten ist es hier in der Suche.</div></li>
+</ol>
+<div class="klein"><strong>Nur</strong> eigene Fotos oder mit Erlaubnis der Fotograf:in. Erkennbare Personen nur mit deren OK.</div>
+</div></dialog>
 <section id="karte"><iframe id="karteframe" title="ganzgraz-Karte" data-src="karte.html?embed=1"></iframe></section>
 <main class="wrap">
 <div class="grid" id="grid"></div>
 <div class="empty" id="empty" hidden>Keine Treffer. Für Orte und Adressen: oben „Karte erzeugen“ – oder Wunsch an Karin.</div>
-<div class="info"><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: Ordner <a href="https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs" target="_blank" rel="noopener">Redaktionsfotos</a>, Dateiname nach dem Muster „Ort oder Motiv – Foto Vorname Nachname.jpg“.</div>
+<div class="info"><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: oben „📤 Eigenes Foto hochladen“.</div>
 </main>
 <footer id="foot">Stand des Katalogs: 30.10.2026, 136 Fotos · Fragen an die Redaktionsleitung</footer>
 <script>
@@ -171,6 +202,20 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
     function fallback(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(x){alert(txt);}document.body.removeChild(t);}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fallback);}else{fallback();}
   });
+  (function(){
+    var d=document.getElementById('up'),was=document.getElementById('upwas'),wer=document.getElementById('upwer'),nm=document.getElementById('upname'),cp=document.getElementById('upcopy');
+    function name(){return (was.value.trim()||'Rathaus Hauptplatz')+' – Foto '+(wer.value.trim()||'Vorname Nachname');}
+    function upd(){nm.textContent=name();}
+    was.addEventListener('input',upd);wer.addEventListener('input',upd);
+    try{var w=localStorage.getItem('gg_fotograf');if(w){wer.value=w;upd();}}catch(x){}
+    wer.addEventListener('change',function(){try{localStorage.setItem('gg_fotograf',wer.value.trim());}catch(x){}});
+    document.getElementById('upbtn').addEventListener('click',function(){if(d.showModal){d.showModal();}else{window.open("https://drive.google.com/drive/folders/1ZnvdeuvTLgATLRbPfuo6qaajzW3EdFcs","_blank");}});
+    document.getElementById('upzu').addEventListener('click',function(){d.close();});
+    d.addEventListener('click',function(e){if(e.target===d)d.close();});
+    cp.addEventListener('click',function(){var t=name();function ok(){cp.textContent='Kopiert!';cp.classList.add('done');setTimeout(function(){cp.textContent='Namen kopieren';cp.classList.remove('done');},1500);}
+      function fb(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');ok();}catch(x){alert(t);}document.body.removeChild(a);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,fb);}else{fb();}});
+  })();
   render();
 })();
 </script>
