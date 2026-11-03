@@ -106,6 +106,7 @@ document.getElementById('gatepw').focus();})();
 </div>
 <select id="bezirk"><option value="">Alle Bezirke</option></select>
 <label class="ext-on"><input type="checkbox" id="extcb"> auch freie Fotos (Wikimedia, Openverse, Pixabay)</label>
+<label class="ext-on"><input type="checkbox" id="gifcb"> GIFs (GIPHY)</label>
 <a class="btn secondary" id="canvabtn" href="https://www.canva.com/photos/" target="_blank" rel="noopener" style="flex:0 0 auto;border-radius:999px" title="Öffnet die Canva-Fotosuche mit dem Suchbegriff (im ganzgraz-Canva-Konto eingeloggt sein)">In Canva suchen</a>
 <span class="count" id="count"></span>
 <button class="btn upload" id="upbtn" type="button">Eigenes Foto hochladen</button>
@@ -133,6 +134,7 @@ document.getElementById('gatepw').focus();})();
 <section id="ext" hidden><h2 id="exthead">Freie Fotos aus Wikimedia Commons</h2><div id="extinfo">Extern, nicht von ganzgraz. Credit mit Name, Lizenz und Link immer übernehmen (Button „Credit kopieren“). Erkennbare Personen: Recht am eigenen Bild trotzdem prüfen. Im Zweifel die Seite auf Commons öffnen.</div><div class="grid" id="extgrid"></div></section>
 <section id="ov" hidden><h2 id="ovhead" style="margin:34px 0 6px;color:var(--lila);font-size:22px">Freie Fotos aus Openverse</h2><div style="font-size:13px;color:#555;margin-bottom:14px">Extern (u. a. Flickr), nur Lizenzen mit kommerzieller Nutzung und Bearbeitung erlaubt. Qualität schwankt – Credit mit Name, Lizenz und Link immer übernehmen. Erkennbare Personen und Logos trotzdem prüfen. <strong>Tipp:</strong> Openverse versteht Englisch besser – z. B. „rain“ statt „Regen“, „doctor“ statt „Arzt“.</div><div class="grid" id="ovgrid"></div></section>
 <section id="px" hidden><h2 style="margin:34px 0 6px;color:var(--lila);font-size:22px">Fotos von <a href="https://pixabay.com/" target="_blank" rel="noopener" style="color:inherit">Pixabay</a></h2><div style="font-size:13px;color:#555;margin-bottom:14px">Pixabay-Lizenz: kommerziell frei, Credit nicht nötig, aber nett („Foto: Name/Pixabay“). Erkennbare Personen, Marken und Logos nicht in irreführendem oder abwertendem Zusammenhang verwenden. Gut für Symbolbilder, kaum Graz.</div><div class="grid" id="pxgrid"></div></section>
+<section id="gif" hidden><h2 style="margin:34px 0 6px;color:var(--lila);font-size:22px">GIFs – Powered by <a href="https://giphy.com/" target="_blank" rel="noopener" style="color:inherit">GIPHY</a></h2><div style="background:#fde8e8;border-left:6px solid var(--rot);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:15px;color:var(--rot);font-weight:700">Wichtig: Keine Ausschnitte aus Filmen/Serien verwenden wegen Urheberrecht. GIPHY immer als Quelle nennen.</div><div style="font-size:13px;color:#555;margin-bottom:14px">Am ehesten unbedenklich: Sticker und Animationen von Künstler:innen oder Marken-Kanälen (Name steht dabei). Nur für [SCHMUNZLER] und Lockeres, nie bei ernsten Themen.</div><div class="grid" id="gifgrid"></div></section>
 <div class="info"><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: oben „Eigenes Foto hochladen“.</div>
 </main>
 <footer id="foot">Stand des Katalogs: 30.10.2026, 136 Fotos · Fragen an die Redaktionsleitung</footer>
@@ -344,6 +346,38 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
     function fb(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(x){alert(txt);}document.body.removeChild(t);}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fb);}else{fb();}
   });
+  var gifcb=document.getElementById('gifcb'),gifsec=document.getElementById('gif'),gifgrid=document.getElementById('gifgrid'),GIF=[],gifSeq=0,gifTimer=null;
+  try{gifcb.checked=localStorage.getItem('gg_gif')==='1';}catch(x){}
+  function gifCard(e,i){
+    var kb=e.groesse?Math.round(e.groesse/1024):0;
+    return '<div class="card"><a class="thumb" href="'+esc(e.seite)+'" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" src="'+esc(e.vorschau)+'" alt="'+esc(e.titel)+'"></a><div class="body">'+
+      '<div class="titel">'+esc(e.titel||'GIF')+'</div>'+
+      '<div class="ort">'+esc((e.w&&e.h?e.w+' × '+e.h+' px':'')+(kb?' · '+(kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'):''))+'</div>'+
+      '<div><span class="badge">GIPHY</span>'+(e.user?' <span class="badge lila">'+esc(e.user)+'</span>':'')+'</div>'+
+      '<div class="btns"><a class="btn" href="'+esc(e.gif)+'" target="_blank" rel="noopener" title="GIF öffnen – Rechtsklick → Bild speichern">GIF öffnen</a>'+
+      '<a class="btn secondary" href="'+esc(e.seite)+'" target="_blank" rel="noopener">Seite auf GIPHY</a>'+
+      '<button class="btn secondary" data-g="'+i+'">Quelle kopieren</button></div></div></div>';
+  }
+  function ladeGiphy(){
+    var raw=q.value.trim();
+    if(!gifcb.checked||raw.length<2||!LIVE_URL){gifsec.hidden=true;gifgrid.innerHTML='';return;}
+    var my=++gifSeq;gifsec.hidden=false;gifgrid.innerHTML='<div class="empty">Suche auf GIPHY …</div>';
+    fetch(LIVE_URL+'?giphy='+encodeURIComponent(raw)+'&pw='+encodeURIComponent(window.GG_PW||'')).then(function(r){return r.json();}).then(function(j){
+      if(my!==gifSeq)return;
+      if(!j||!j.hits){gifgrid.innerHTML='<div class="empty">'+esc((j&&j.fehler)||'GIPHY ist noch nicht eingerichtet.')+'</div>';return;}
+      GIF=j.hits;
+      gifgrid.innerHTML=GIF.length?GIF.map(gifCard).join(''):'<div class="empty">Auf GIPHY nichts gefunden.</div>';
+    }).catch(function(){if(my===gifSeq)gifgrid.innerHTML='<div class="empty">GIPHY gerade nicht erreichbar.</div>';});
+  }
+  gifgrid.addEventListener('click',function(e){
+    var btn=e.target.closest('button[data-g]');if(!btn)return;
+    var g=GIF[+btn.getAttribute('data-g')];var txt='GIF: '+(g.user?g.user+'/':'')+'GIPHY';
+    function ok(){btn.textContent='Kopiert!';btn.classList.add('done');setTimeout(function(){btn.textContent='Quelle kopieren';btn.classList.remove('done');},1500);}
+    function fb(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(x){alert(txt);}document.body.removeChild(t);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fb);}else{fb();}
+  });
+  gifcb.addEventListener('change',function(){try{localStorage.setItem('gg_gif',gifcb.checked?'1':'0');}catch(x){}ladeGiphy();});
+  q.addEventListener('input',function(){clearTimeout(gifTimer);gifTimer=setTimeout(ladeGiphy,700);});
   q.addEventListener('input',canvaLink);
   function extPlan(){clearTimeout(extTimer);extTimer=setTimeout(function(){ladeCommons();ladeOpenverse();ladePixabay();},700);}
   extcb.addEventListener('change',function(){try{localStorage.setItem('gg_commons',extcb.checked?'1':'0');}catch(x){}ladeCommons();ladeOpenverse();ladePixabay();});
