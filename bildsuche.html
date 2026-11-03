@@ -302,6 +302,7 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
         var quelle=String(r.source||r.provider||'').replace(/^./,function(c){return c.toUpperCase();});
         var credit='Foto: '+wer+' / '+(quelle||'Openverse')+(frei?' ('+liz+')':', '+liz+(r.license_url?' ('+r.license_url+')':''));
         var th=r.url||'';if(/staticflickr\.com/.test(th))th=th.replace(/(_[a-z])?\.jpg$/i,'_z.jpg');
+        var wm=th.match(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/([0-9a-f])\/([0-9a-f]{2})\/([^\/]+)$/);if(wm)th='https://upload.wikimedia.org/wikipedia/commons/thumb/'+wm[1]+'/'+wm[2]+'/'+wm[3]+'/400px-'+wm[3];
         OV.push({titel:r.title||'ohne Titel',thumb:th,thumb2:r.thumbnail||'',url:r.url,seite:r.foreign_landing_url||r.url,w:r.width,h:r.height,lizenz:liz,credit:credit,quelle:quelle});
       });
       ovgrid.innerHTML=OV.length?OV.map(ovCard).join(''):'<div class="empty">Auf Openverse nichts Passendes in Newsletter-Qualität mit passender Lizenz.</div>';
