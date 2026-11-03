@@ -277,7 +277,7 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   var ovsec=document.getElementById('ov'),ovgrid=document.getElementById('ovgrid'),OV=[],ovSeq=0,canva=document.getElementById('canvabtn');
   function canvaLink(){var v=q.value.trim();canva.href=v?'https://www.canva.com/photos/search/'+encodeURIComponent(v)+'/':'https://www.canva.com/photos/';}
   function ovCard(e,i){
-    return '<div class="card"><a class="thumb" href="'+esc(e.seite)+'" target="_blank" rel="noopener"><img loading="lazy" src="'+esc(e.thumb)+'" alt="'+esc(e.titel)+'"></a><div class="body">'+
+    return '<div class="card"><a class="thumb" href="'+esc(e.seite)+'" target="_blank" rel="noopener"><img loading="lazy" referrerpolicy="no-referrer" src="'+esc(e.thumb)+'" data-alt="'+esc(e.thumb2)+'" onerror="if(this.dataset.alt&&this.src!==this.dataset.alt){this.src=this.dataset.alt;}else{this.style.display=\'none\';}" alt="'+esc(e.titel)+'"></a><div class="body">'+
       '<div class="titel">'+esc(e.titel)+'</div>'+
       '<div class="ort">'+esc((e.w&&e.h?e.w+' × '+e.h+' px · ':'')+e.quelle)+'</div>'+
       '<div><span class="badge">extern</span> <span class="badge lila">'+esc(e.lizenz)+'</span></div>'+
@@ -301,7 +301,8 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
         var wer=r.creator||'unbekannt';
         var quelle=String(r.source||r.provider||'').replace(/^./,function(c){return c.toUpperCase();});
         var credit='Foto: '+wer+' / '+(quelle||'Openverse')+(frei?' ('+liz+')':', '+liz+(r.license_url?' ('+r.license_url+')':''));
-        OV.push({titel:r.title||'ohne Titel',thumb:r.thumbnail||r.url,url:r.url,seite:r.foreign_landing_url||r.url,w:r.width,h:r.height,lizenz:liz,credit:credit,quelle:quelle});
+        var th=r.url||'';if(/staticflickr\.com/.test(th))th=th.replace(/(_[a-z])?\.jpg$/i,'_z.jpg');
+        OV.push({titel:r.title||'ohne Titel',thumb:th,thumb2:r.thumbnail||'',url:r.url,seite:r.foreign_landing_url||r.url,w:r.width,h:r.height,lizenz:liz,credit:credit,quelle:quelle});
       });
       ovgrid.innerHTML=OV.length?OV.map(ovCard).join(''):'<div class="empty">Auf Openverse nichts Passendes in Newsletter-Qualität mit passender Lizenz.</div>';
     }).catch(function(){if(my===ovSeq)ovgrid.innerHTML='<div class="empty">Openverse gerade nicht erreichbar.</div>';});
