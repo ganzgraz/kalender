@@ -143,7 +143,7 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       '<div class="credit">'+esc(d.credit)+'</div>'+
       (d.hinweis?'<div class="hinweis">'+esc(d.hinweis)+'</div>':'')+
       '<div class="btns">'+(d.ordner?'':'<a class="btn" href="https://drive.google.com/thumbnail?id='+esc(d.id)+'&sz=w'+(d.format==='Hoch'?'720':'1104')+'" target="_blank" rel="noopener" title="Öffnet das Bild in Newsletter-Größe – dann Rechtsklick → Bild speichern">Newsletter-Größe ('+(d.format==='Hoch'?'720':'1104')+' px)</a>')+
-      '<a class="btn secondary" href="'+esc(d.url)+'" target="_blank" rel="noopener">'+(d.ordner?'Ordner öffnen':'Original in Drive')+'</a>'+
+      '<a class="btn secondary" href="'+esc(d.orig||d.url)+'" target="_blank" rel="noopener" title="'+(d.orig?'Originaldatei in voller Auflösung – zum Zuschneiden':'Datei in Drive')+'">'+(d.ordner?'Ordner öffnen':(d.orig?'Original (volle Auflösung)':'Original in Drive'))+'</a>'+
       '<button class="btn secondary" data-i="'+i+'">Credit kopieren</button></div>'+
       '</div></div>';
   }
@@ -159,7 +159,7 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       var ordner=/\/folders\//.test(url);var m=url.match(/\/d\/([A-Za-z0-9_-]+)/);
       var fo=g('Format');var format=ordner?'Ordner':(/hoch/i.test(fo)?'Hoch':(/quer/i.test(fo)?'Quer':(g('URL')?'':'Original')));
       var hin=g('Rechte-/Motivhinweis');if(!g('URL')&&g('URL Original'))hin=(hin?hin+' · ':'')+'Link führt zum Original (keine verkleinerte Kopie im Katalog)';
-      out.push({datei:g('Datei'),ort:g('Ort'),bezirk:g('Bezirk'),motiv:g('Motiv'),format:format,credit:g('Credit (Vorschlag)'),hinweis:hin,url:url,id:m?m[1]:'',ordner:ordner});
+      out.push({datei:g('Datei'),ort:g('Ort'),bezirk:g('Bezirk'),motiv:g('Motiv'),format:format,credit:g('Credit (Vorschlag)'),hinweis:hin,url:url,id:m?m[1]:'',ordner:ordner,orig:(g('URL')?g('URL Original'):'')});
     });
     return out.length?out:null;
   }
