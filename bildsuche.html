@@ -87,7 +87,8 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <button class="chip active" data-f="">alle</button>
 </div>
 <select id="bezirk"><option value="">Alle Bezirke</option></select>
-<label class="ext-on"><input type="checkbox" id="extcb"> auch freie Fotos (Wikimedia)</label>
+<label class="ext-on"><input type="checkbox" id="extcb"> auch freie Fotos (Wikimedia, Openverse)</label>
+<a class="btn secondary" id="canvabtn" href="https://www.canva.com/photos/" target="_blank" rel="noopener" style="flex:0 0 auto;border-radius:999px" title="Öffnet die Canva-Fotosuche mit dem Suchbegriff (im ganzgraz-Canva-Konto eingeloggt sein)">In Canva suchen</a>
 <span class="count" id="count"></span>
 <button class="btn upload" id="upbtn" type="button">Eigenes Foto hochladen</button>
 <a class="btn wunsch" href="https://docs.google.com/document/d/1akqXdNYciOKU1WspPzZgsdKAPAIxhbgGYKoCl9DpJNE/edit" target="_blank" rel="noopener">Foto fehlt? Wunsch an Karin</a>
@@ -112,6 +113,7 @@ footer{text-align:center;font-size:13px;color:#666;padding:16px 20px 30px}
 <div class="grid" id="grid"></div>
 <div class="empty" id="empty" hidden>Keine Treffer. Für Orte und Adressen: oben „Karte erzeugen“ – oder Wunsch an Karin.</div>
 <section id="ext" hidden><h2 id="exthead">Freie Fotos aus Wikimedia Commons</h2><div id="extinfo">Extern, nicht von ganzgraz. Credit mit Name, Lizenz und Link immer übernehmen (Button „Credit kopieren“). Erkennbare Personen: Recht am eigenen Bild trotzdem prüfen. Im Zweifel die Seite auf Commons öffnen.</div><div class="grid" id="extgrid"></div></section>
+<section id="ov" hidden><h2 id="ovhead" style="margin:34px 0 6px;color:var(--lila);font-size:22px">Freie Fotos aus Openverse</h2><div style="font-size:13px;color:#555;margin-bottom:14px">Extern (u. a. Flickr), nur Lizenzen mit kommerzieller Nutzung und Bearbeitung erlaubt. Qualität schwankt – Credit mit Name, Lizenz und Link immer übernehmen. Erkennbare Personen und Logos trotzdem prüfen.</div><div class="grid" id="ovgrid"></div></section>
 <div class="info"><strong>Hinweis:</strong> „Newsletter-Größe“ öffnet das Bild fertig verkleinert (1104 px, Hochformat 720 px) – Rechtsklick → „Bild speichern unter“, dann direkt in Mailchimp hochladen. Nur Fotos aus dem Katalog mit bestätigtem Credit. Bild im Newsletter mindestens 1104 px breit, Hochformat auf ca. 65 % stellen, Credit immer darunter. Eigene Fotos: oben „Eigenes Foto hochladen“.</div>
 </main>
 <footer id="foot">Stand des Katalogs: 30.10.2026, 136 Fotos · Fragen an die Redaktionsleitung</footer>
@@ -253,8 +255,48 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       extgrid.innerHTML=EXT.length?EXT.map(extCard).join(''):'<div class="empty">Auf Commons nichts Passendes in Newsletter-Qualität mit freier Lizenz.</div>';
     }).catch(function(){if(my===extSeq)extgrid.innerHTML='<div class="empty">Wikimedia Commons gerade nicht erreichbar.</div>';});
   }
-  function extPlan(){clearTimeout(extTimer);extTimer=setTimeout(ladeCommons,700);}
-  extcb.addEventListener('change',function(){try{localStorage.setItem('gg_commons',extcb.checked?'1':'0');}catch(x){}ladeCommons();});
+  var ovsec=document.getElementById('ov'),ovgrid=document.getElementById('ovgrid'),OV=[],ovSeq=0,canva=document.getElementById('canvabtn');
+  function canvaLink(){var v=q.value.trim();canva.href=v?'https://www.canva.com/photos/search/'+encodeURIComponent(v)+'/':'https://www.canva.com/photos/';}
+  function ovCard(e,i){
+    return '<div class="card"><a class="thumb" href="'+esc(e.seite)+'" target="_blank" rel="noopener"><img loading="lazy" src="'+esc(e.thumb)+'" alt="'+esc(e.titel)+'"></a><div class="body">'+
+      '<div class="titel">'+esc(e.titel)+'</div>'+
+      '<div class="ort">'+esc((e.w&&e.h?e.w+' × '+e.h+' px · ':'')+e.quelle)+'</div>'+
+      '<div><span class="badge">extern</span> <span class="badge lila">'+esc(e.lizenz)+'</span></div>'+
+      '<div class="credit">'+esc(e.credit)+'</div>'+
+      '<div class="btns"><a class="btn" href="'+esc(e.url)+'" target="_blank" rel="noopener" title="Bild in Originalgröße – Rechtsklick → Bild speichern">Bild öffnen</a>'+
+      '<a class="btn secondary" href="'+esc(e.seite)+'" target="_blank" rel="noopener">Quelle</a>'+
+      '<button class="btn secondary" data-o="'+i+'">Credit kopieren</button></div></div></div>';
+  }
+  function ladeOpenverse(){
+    var raw=q.value.trim();
+    if(!extcb.checked||raw.length<3){ovsec.hidden=true;ovgrid.innerHTML='';return;}
+    var url='https://api.openverse.org/v1/images/?q='+encodeURIComponent(raw)+'&license_type=commercial,modification&size=large&page_size=30&mature=false';
+    var my=++ovSeq;ovsec.hidden=false;ovgrid.innerHTML='<div class="empty">Suche auf Openverse …</div>';
+    fetch(url).then(function(r){return r.json();}).then(function(j){
+      if(my!==ovSeq)return;OV=[];
+      (j.results||[]).forEach(function(r){
+        if(r.width&&r.height&&Math.max(r.width,r.height)<1104)return;
+        var lic=String(r.license||'').toUpperCase(),ver=r.license_version||'';
+        var liz=(lic==='CC0'||lic==='PDM')?(lic==='PDM'?'gemeinfrei':'CC0'):('CC '+lic+(ver?' '+ver:''));
+        var frei=(lic==='CC0'||lic==='PDM');
+        var wer=r.creator||'unbekannt';
+        var quelle=String(r.source||r.provider||'').replace(/^./,function(c){return c.toUpperCase();});
+        var credit='Foto: '+wer+' / '+(quelle||'Openverse')+(frei?' ('+liz+')':', '+liz+(r.license_url?' ('+r.license_url+')':''));
+        OV.push({titel:r.title||'ohne Titel',thumb:r.thumbnail||r.url,url:r.url,seite:r.foreign_landing_url||r.url,w:r.width,h:r.height,lizenz:liz,credit:credit,quelle:quelle});
+      });
+      ovgrid.innerHTML=OV.length?OV.map(ovCard).join(''):'<div class="empty">Auf Openverse nichts Passendes in Newsletter-Qualität mit passender Lizenz.</div>';
+    }).catch(function(){if(my===ovSeq)ovgrid.innerHTML='<div class="empty">Openverse gerade nicht erreichbar.</div>';});
+  }
+  ovgrid.addEventListener('click',function(e){
+    var btn=e.target.closest('button[data-o]');if(!btn)return;
+    var txt=OV[+btn.getAttribute('data-o')].credit;
+    function ok(){btn.textContent='Kopiert!';btn.classList.add('done');setTimeout(function(){btn.textContent='Credit kopieren';btn.classList.remove('done');},1500);}
+    function fb(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(x){alert(txt);}document.body.removeChild(t);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fb);}else{fb();}
+  });
+  q.addEventListener('input',canvaLink);
+  function extPlan(){clearTimeout(extTimer);extTimer=setTimeout(function(){ladeCommons();ladeOpenverse();},700);}
+  extcb.addEventListener('change',function(){try{localStorage.setItem('gg_commons',extcb.checked?'1':'0');}catch(x){}ladeCommons();ladeOpenverse();});
   q.addEventListener('input',extPlan);
   extgrid.addEventListener('click',function(e){
     var btn=e.target.closest('button[data-e]');if(!btn)return;
