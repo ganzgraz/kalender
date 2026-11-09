@@ -283,11 +283,17 @@ function draw(els,b,opt){
   if(opt.strecke)for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11;g.lineCap="round";g.lineJoin="round";g.stroke();path(pts);g.strokeStyle=CI.orange;g.lineWidth=8;g.stroke();}
   // Marker (bei mehreren nummeriert)
   const marks=opt.marks||[];const viele=marks.length>1;
+  const belegt=marks.map(m=>{const [x,y]=P(m.lon,m.lat);return [x-22,y-22,44,44];}); // Marker-Kreise, dazu kommen die Pillen
+  if(opt.titel){g.font=`700 ${opt.story?30:22}px "League Spartan"`;belegt.push([20,20,g.measureText(opt.titel).width+72,70]);}
+  const kollidiert=(x,y,w,h)=>x<6||y<6||x+w>W-6||y+h>H-62||belegt.some(b=>x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1]);
   for(let i=0;i<marks.length;i++){const m=marks[i];const [mx,my]=P(m.lon,m.lat);
     g.beginPath();g.arc(mx,my,19,0,7);g.fillStyle=CI.orange;g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
     if(viele){g.font='700 19px "League Spartan"';g.fillStyle="#000";g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),mx,my+2);g.textAlign="left";}
     else{g.beginPath();g.arc(mx,my,6,0,7);g.fillStyle="#000";g.fill();}
-    if(m.label){g.font="16px Montserrat";const tw=g.measureText(m.label).width+30;let x=mx+22,y=my-44;if(x+tw>W-10)x=mx-22-tw;if(y<90)y=my+24;
+    if(m.label){g.font="16px Montserrat";const tw=g.measureText(m.label).width+30;
+      // Kandidaten: rechts oben, links oben, rechts unten, links unten, drüber, drunter – erster ohne Überlappung
+      const kand=[[mx+22,my-44],[mx-22-tw,my-44],[mx+22,my+10],[mx-22-tw,my+10],[mx-tw/2,my-62],[mx-tw/2,my+26]];
+      let pos=kand.find(c=>!kollidiert(c[0],c[1],tw,36))||kand[0];const x=pos[0],y=pos[1];belegt.push([x,y,tw,36]);
       rr(g,x,y,tw,36,16);g.fillStyle="#fff";g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
       g.fillStyle="#000";g.textBaseline="middle";g.fillText(m.label,x+15,y+18);}
   }
@@ -323,12 +329,13 @@ $("go").onclick=async()=>{
       lat=(s+n)/2;lon=(w+e)/2;const k=Math.cos(lat*Math.PI/180);const hy=(n-s)/2*111320,hx=(e-w)/2*111320*k;r=Math.max(200,Math.max(hy,hx/aspect)*1.25+70);}
     else{const m=marks[0]||(strecke?{lon:alle[0][0],lat:alle[0][1]}:null)||(flaechen.length?{lon:alle[0][0],lat:alle[0][1]}:null);lat=m.lat;lon=m.lon;}
     const b=bbox(lat,lon,r,aspect);
-    status("Lade Kartendaten …");let els=await fetchAreaLocal(b,$("gebaeude").checked);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,$("gebaeude").checked);}
+    const geb=$("gebaeude").checked&&r<=1300; // bei sehr weitem Ausschnitt werden Gebäude nur Rauschen
+    status("Lade Kartendaten …");let els=await fetchAreaLocal(b,geb);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,geb);}
     status("Zeichne …");
     const titel=$("titel").value.trim()||(marks[0]?marks[0].name:strecke?strecke.name:flaechen.length?flaechen[0].name:"");
     draw(els,b,{marks:marks,strecke:strecke,flaechen:flaechen,titel:titel,story});
     $("out").style.display="block";$("dl").disabled=false;
-    $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Ausschnitt ±${Math.round(r)} m · Quelle: ${quelle} · Gefunden: ${gefunden.join(" · ")}`;
+    $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Ausschnitt ±${Math.round(r)} m${$("gebaeude").checked&&!geb?" (Gebäude bei so weitem Ausschnitt weggelassen)":""} · Quelle: ${quelle} · Gefunden: ${gefunden.join(" · ")}`;
     status(marks.length>1?"Fertig. Prüf bitte, ob alle Marker richtig sitzen (Reihenfolge = Eingabe).":"Fertig. Prüf bitte, ob die Markierung am richtigen Ort sitzt.");
   }catch(e){status("Fehler: "+e.message);}
   $("go").disabled=false;
