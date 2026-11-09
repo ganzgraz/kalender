@@ -39,6 +39,14 @@
       <div><label>Ausschnitt</label><select id="radius"><option value="250">eng (250 m)</option><option value="450" selected>normal (450 m)</option><option value="800">weit (800 m)</option><option value="1500">Bezirk (1,5 km)</option></select></div>
       <div><label>Format</label><select id="format"><option value="quer" selected>Newsletter 1152×768</option><option value="story">Story 1080×1920</option></select></div>
     </div>
+    <details id="mehr"><summary>Mehr: weitere Orte, Strecke, Fläche hervorheben</summary>
+      <div class="row">
+        <div><label>Weitere Orte (einer pro Zeile → Marker 2, 3, …; optional „Ort | Beschriftung“)</label><textarea id="orte" rows="3" placeholder="z. B.&#10;Jakominiplatz&#10;Hauptbahnhof | Treffpunkt 18 Uhr" style="width:100%;font:inherit;padding:8px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box"></textarea></div>
+        <div><label>Strecke hervorheben (Straßenname, mehrere mit Komma; oder „von A bis B“)</label><input id="strecke" placeholder="z. B. Annenstraße · Keplerstraße, Wienerstraße · von Hauptbahnhof bis Jakominiplatz"></div>
+        <div><label>Fläche hervorheben (Bezirk, Park, Platz, Friedhof; mehrere mit Komma)</label><input id="flaeche" placeholder="z. B. Gries · Stadtpark · Innere Stadt, Lend"></div>
+      </div>
+      <label><input type="checkbox" id="autofit" checked style="width:auto;margin-right:6px">Ausschnitt automatisch so wählen, dass alle Marker, Strecke und Fläche im Bild sind</label>
+    </details>
     <label><input type="checkbox" id="marker" checked style="width:auto;margin-right:6px">Markierung mit Beschriftung setzen</label>
     <label><input type="checkbox" id="gebaeude" checked style="width:auto;margin-right:6px">Gebäude einzeichnen</label>
     <button class="primary" id="go">Karte erzeugen</button>
@@ -46,6 +54,7 @@
     <div id="status"></div>
     <details><summary>Hinweise</summary>
       <p>Die Karte wird im Browser aus vorbereiteten OpenStreetMap-Kacheln von Graz gezeichnet (Stand November 2026) und ist in wenigen Sekunden fertig. Nur wenn eine Kachel fehlt, wird live bei Overpass nachgeladen (20–60 s, bei „504“ nochmal klicken). Im Newsletter: volle Breite (Querformat), Bildunterschrift steht schon auf der Karte – zusätzlich als 12-px-Zeile darunter: <b>Grafik: ganzgraz · Kartendaten: © OpenStreetMap-Mitwirkende</b>.</p>
+      <p><b>Mehr Aussage auf der Karte:</b> Unter „Mehr“ lassen sich weitere Orte als nummerierte Marker setzen (z. B. alle Standorte einer Serie), eine Strecke orange hervorheben (ganze Straßen per Namen, oder „von A bis B“ – die Karte sucht den Weg über das Grazer Straßennetz, z. B. für Demo-Routen, Umleitungen, Baustellen) und eine Fläche einfärben (Bezirk, Park, Platz, Friedhof – Bezirksgrenzen sind aus OpenStreetMap). Der Ausschnitt passt sich automatisch an, damit alles im Bild ist.</p>
       <p>Findet die Suche einen Ort nicht: Straße + Hausnummer probieren oder den Namen so schreiben, wie er auf Straßenschildern steht (z. B. „Kaiser-Josef-Platz“). Keine Karten bei Unfallopfern oder Privatadressen.</p>
     </details>
   </div>
@@ -147,6 +156,60 @@ async function geocodeLocal(name){
   if(k.length>=4&&keys.length){const q=idx.p[keys[0]];return {lat:q[0],lon:q[1],name:q[2]||name};}
   return null;
 }
+// ===== Extras (Stand 09.11.2026): Straßenzüge + Flächen aus kacheln/strassen.json und kacheln/flaechen.json (extras_bauen.py) =====
+async function extraDatei(name){ // ohne Cache-API, Dateien sind größer; Browser-Cache reicht
+  if(tileMem[name]!==undefined)return tileMem[name];
+  let r=null;try{const res=await fetch('kacheln/'+name+'.json',{cache:'force-cache'});if(res.ok)r=await res.json();}catch(e){}
+  if(!r){try{const res=await fetch(KACHEL_URL+'?kachel='+name+'&pw='+encodeURIComponent(pw()));if(res.ok){r=await res.json();if(r&&r.ok===false)r=null;}}catch(e){}}
+  tileMem[name]=r||false;return tileMem[name];
+}
+const dist=(a,b)=>{const k=Math.cos(a[1]*Math.PI/180);const dx=(a[0]-b[0])*111320*k,dy=(a[1]-b[1])*111320;return Math.hypot(dx,dy);}; // Punkte als [lon,lat]
+const wayPts=w=>{const o=[];for(let i=0;i<w.length;i+=2)o.push([w[i]/1e5,w[i+1]/1e5]);return o;};
+// --- Fläche ---
+async function flaecheSuchen(txt){
+  const F=await extraDatei('flaechen');if(!F)throw new Error("Flächendaten (flaechen.json) nicht erreichbar.");
+  const k=normN(txt).replace(/^bezirk\s+/,'');
+  let v=F['bezirk '+k]||F[k];
+  if(!v){const keys=Object.keys(F).filter(x=>x.indexOf(k)>=0).sort((a,b)=>a.length-b.length);if(k.length>=4&&keys.length)v=F[keys[0]];}
+  if(!v)throw new Error("Fläche „"+txt+"“ nicht gefunden (Bezirk, Park, Platz, Friedhof, Gewässer).");
+  return {name:v.n,typ:v.t,polys:v.p.map(wayPts)};
+}
+// --- Strecke ---
+let GRAPH=null;
+async function strassenGraph(){
+  if(GRAPH)return GRAPH;const S=await extraDatei('strassen');if(!S)throw new Error("Straßendaten (strassen.json) nicht erreichbar.");
+  const nodes=new Map();const key=p=>p[0]+','+p[1];
+  const node=p=>{const k=key(p);let n=nodes.get(k);if(!n){n={p:p,adj:[]};nodes.set(k,n);}return n;};
+  for(const sk in S){for(const w of S[sk].w){const pts=wayPts(w);for(let i=1;i<pts.length;i++){const a=node(pts[i-1]),b=node(pts[i]);const d=dist(a.p,b.p);a.adj.push([b,d,sk]);b.adj.push([a,d,sk]);}}}
+  GRAPH={S:S,nodes:[...nodes.values()]};return GRAPH;
+}
+function naechsterKnoten(G,p,erlaubt){let best=null,bd=1e9;for(const n of G.nodes){if(erlaubt&&!n.adj.some(a=>erlaubt.has(a[2])))continue;const d=dist(n.p,p);if(d<bd){bd=d;best=n;}}return bd<400?best:null;}
+function dijkstra(G,a,b,erlaubt){
+  const D=new Map([[a,0]]),prev=new Map();const done=new Set();
+  const H=[];const push=(d,n)=>{H.push([d,n]);let i=H.length-1;while(i>0){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p;}};
+  const pop=()=>{const top=H[0],last=H.pop();if(H.length){H[0]=last;let i=0;for(;;){let l=2*i+1,r=l+1,s=i;if(l<H.length&&H[l][0]<H[s][0])s=l;if(r<H.length&&H[r][0]<H[s][0])s=r;if(s===i)break;[H[s],H[i]]=[H[i],H[s]];i=s;}}return top;};
+  push(0,a);
+  while(H.length){const [d,n]=pop();if(done.has(n))continue;done.add(n);if(n===b)break;
+    for(const [m,w,sk] of n.adj){if(erlaubt&&!erlaubt.has(sk))continue;const nd=d+w;if(nd<(D.get(m)??1e18)){D.set(m,nd);prev.set(m,n);push(nd,m);}}}
+  if(!prev.has(b))return null;const path=[b.p];let c=b;while(c!==a){c=prev.get(c);path.push(c.p);}return {pts:path.reverse(),len:D.get(b)};
+}
+async function ortFinden(name){let g=await geocodeLocal(name);if(!g)g=await geocode(name);return g;}
+async function streckeSuchen(txt){
+  const G=await strassenGraph();const S=G.S;
+  // Form 1: Straßenname(n), mit Komma getrennt → ganze Straßen
+  const teile=txt.split(/\s*,\s*/).filter(Boolean);
+  if(teile.every(t=>S[normN(t)])){const lines=[],names=[];for(const t of teile){const s=S[normN(t)];names.push(s.n);for(const w of s.w)lines.push(wayPts(w));}return {name:names.join(", "),lines:lines};}
+  // Form 2: „[Straße:] von A bis B“ / „A – B“
+  let m=txt.match(/^(?:(.+?)\s*:\s*)?(?:von\s+)?(.+?)\s+(?:bis|nach|–|-|—)\s+(.+)$/i);
+  if(!m)throw new Error("Strecke „"+txt+"“: Straßenname nicht gefunden, und „von A bis B“ nicht erkannt.");
+  const nur=m[1]?new Set(m[1].split(/\s*,\s*/).map(normN).filter(k=>S[k])):null;
+  if(m[1]&&!nur.size)throw new Error("Straße „"+m[1]+"“ nicht gefunden.");
+  const A=await ortFinden(m[2].trim()),B=await ortFinden(m[3].trim());
+  const a=naechsterKnoten(G,[A.lon,A.lat],nur),b=naechsterKnoten(G,[B.lon,B.lat],nur);
+  if(!a||!b)throw new Error("Start oder Ziel liegt zu weit vom Straßennetz entfernt.");
+  const r=dijkstra(G,a,b,nur);if(!r)throw new Error("Kein Weg von „"+A.name+"“ nach „"+B.name+"“ gefunden"+(nur?" (nur über "+m[1]+")":"")+".");
+  return {name:A.name+" – "+B.name,lines:[r.pts],len:r.len,von:A,bis:B};
+}
 // ----- Einmaliger Aufbau der Kacheln (nur mit ?build=1 sichtbar) -----
 if(/[?&]build=1/.test(location.search)){
  document.addEventListener("DOMContentLoaded",function(){
@@ -207,17 +270,26 @@ function draw(els,b,opt){
   for(const el of els){const t=el.tags||{};if(t.leisure||t.landuse)poly(el,CI.gruen);}
   for(const el of els){const t=el.tags||{};if(t.building)poly(el,CI.geb);}
   for(const el of els){const t=el.tags||{};if(t.natural==="water")poly(el,CI.wasser);if(t.waterway)line(el,CI.wasser,7);}
+  const path=pts=>{g.beginPath();pts.forEach((p,i)=>{const [x,y]=P(p[0],p[1]);i?g.lineTo(x,y):g.moveTo(x,y)});};
+  // Fläche: Füllung unter den Straßen, Rand später darüber
+  if(opt.flaechen)for(const f of opt.flaechen){for(const ring of f.polys){path(ring);g.closePath();g.fillStyle="rgba(255,137,0,0.22)";g.fill();}}
   const big=t=>["motorway","trunk","primary","secondary","tertiary"].includes(t.highway);
   for(const el of els){const t=el.tags||{};if(t.highway)line(el,CI.rand,(big(t)?6.5:3.5)+1.6);}
   for(const el of els){const t=el.tags||{};if(t.highway)line(el,CI.strasse,big(t)?6.5:3.5);}
   for(const el of els){const t=el.tags||{};if(t.railway==="tram")line(el,CI.lila,1.4,[5,4]);if(t.railway==="rail")line(el,"#6b5a8e",1.2,[8,4]);}
-  // Marker
-  if(opt.marker){const [mx,my]=P(opt.lon,opt.lat);
+  // Flächenrand
+  if(opt.flaechen)for(const f of opt.flaechen){for(const ring of f.polys){path(ring);g.closePath();g.strokeStyle=CI.orange;g.lineWidth=4;g.lineJoin="round";g.stroke();}}
+  // Strecke
+  if(opt.strecke)for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11;g.lineCap="round";g.lineJoin="round";g.stroke();path(pts);g.strokeStyle=CI.orange;g.lineWidth=8;g.stroke();}
+  // Marker (bei mehreren nummeriert)
+  const marks=opt.marks||[];const viele=marks.length>1;
+  for(let i=0;i<marks.length;i++){const m=marks[i];const [mx,my]=P(m.lon,m.lat);
     g.beginPath();g.arc(mx,my,19,0,7);g.fillStyle=CI.orange;g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
-    g.beginPath();g.arc(mx,my,6,0,7);g.fillStyle="#000";g.fill();
-    if(opt.label){g.font="16px Montserrat";const tw=g.measureText(opt.label).width+30;const x=mx+22,y=my-44;
+    if(viele){g.font='700 19px "League Spartan"';g.fillStyle="#000";g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),mx,my+2);g.textAlign="left";}
+    else{g.beginPath();g.arc(mx,my,6,0,7);g.fillStyle="#000";g.fill();}
+    if(m.label){g.font="16px Montserrat";const tw=g.measureText(m.label).width+30;let x=mx+22,y=my-44;if(x+tw>W-10)x=mx-22-tw;if(y<90)y=my+24;
       rr(g,x,y,tw,36,16);g.fillStyle="#fff";g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
-      g.fillStyle="#000";g.textBaseline="middle";g.fillText(opt.label,x+15,y+18);}
+      g.fillStyle="#000";g.textBaseline="middle";g.fillText(m.label,x+15,y+18);}
   }
   // Titel-Pille
   if(opt.titel){const fs=opt.story?30:22;g.font=`700 ${fs}px "League Spartan"`;const tw=g.measureText(opt.titel).width+56;
@@ -232,19 +304,32 @@ function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);
 function roundCorners(c){const g=c.getContext("2d");g.globalCompositeOperation="destination-in";rr(g,0,0,c.width,c.height,10);g.fillStyle="#000";g.fill();g.globalCompositeOperation="source-over";}
 
 $("go").onclick=async()=>{
-  const ort=$("ort").value.trim();if(!ort){status("Bitte einen Ort eingeben.");return;}
+  const ort=$("ort").value.trim(),streckeTxt=$("strecke").value.trim(),flaecheTxt=$("flaeche").value.trim();
+  const zeilen=[ort].concat($("orte").value.split(/\n/)).map(s=>s.trim()).filter(Boolean);
+  if(!zeilen.length&&!streckeTxt&&!flaecheTxt){status("Bitte einen Ort eingeben (oder Strecke/Fläche unter „Mehr“).");return;}
   $("go").disabled=true;$("dl").disabled=true;const t0=Date.now();
   try{
     await document.fonts.load('700 22px "League Spartan"');await document.fonts.load('16px Montserrat');
-    status("Suche „"+ort+"“ in Graz …");let geo=await geocodeLocal(ort);let quelle="Kacheln";if(!geo){quelle="Overpass";geo=await geocode(ort);}
-    const story=$("format").value==="story";const r=+$("radius").value*(story?2.2:1);
-    const b=bbox(geo.lat,geo.lon,r,story?1080/1920:1152/768);
+    let quelle="Kacheln";const marks=[];const gefunden=[];
+    for(const z of zeilen){const [name,label]=z.split(/\s*\|\s*/);status("Suche „"+name+"“ in Graz …");let geo=await geocodeLocal(name);if(!geo){quelle="Overpass";geo=await geocode(name);}
+      marks.push({lat:geo.lat,lon:geo.lon,name:geo.name,label:$("marker").checked?(label||name):""});gefunden.push(`${geo.name} (${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)})`);}
+    let strecke=null;if(streckeTxt){status("Suche Strecke …");strecke=await streckeSuchen(streckeTxt);gefunden.push("Strecke: "+strecke.name+(strecke.len?" ("+(strecke.len/1000).toFixed(1).replace(".",",")+" km)":""));}
+    const flaechen=[];for(const f of flaecheTxt.split(/\s*,\s*/).filter(Boolean)){status("Suche Fläche „"+f+"“ …");const v=await flaecheSuchen(f);flaechen.push(v);gefunden.push(v.typ+": "+v.name);}
+    const story=$("format").value==="story";const aspect=story?1080/1920:1152/768;let r=+$("radius").value*(story?2.2:1);
+    // Mittelpunkt + Ausschnitt: automatisch, sobald mehr als ein Marker im Spiel ist
+    const alle=marks.map(m=>[m.lon,m.lat]);if(strecke)for(const l of strecke.lines)alle.push(...l);for(const f of flaechen)for(const p of f.polys)alle.push(...p);
+    let lat,lon;
+    if($("autofit").checked&&(alle.length>1)){const lons=alle.map(p=>p[0]),lats=alle.map(p=>p[1]);const w=Math.min(...lons),e=Math.max(...lons),s=Math.min(...lats),n=Math.max(...lats);
+      lat=(s+n)/2;lon=(w+e)/2;const k=Math.cos(lat*Math.PI/180);const hy=(n-s)/2*111320,hx=(e-w)/2*111320*k;r=Math.max(200,Math.max(hy,hx/aspect)*1.25+70);}
+    else{const m=marks[0]||(strecke?{lon:alle[0][0],lat:alle[0][1]}:null)||(flaechen.length?{lon:alle[0][0],lat:alle[0][1]}:null);lat=m.lat;lon=m.lon;}
+    const b=bbox(lat,lon,r,aspect);
     status("Lade Kartendaten …");let els=await fetchAreaLocal(b,$("gebaeude").checked);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,$("gebaeude").checked);}
     status("Zeichne …");
-    draw(els,b,{lat:geo.lat,lon:geo.lon,marker:$("marker").checked,label:$("marker").checked?($("ort").value.trim()):"",titel:$("titel").value.trim()||geo.name,story});
+    const titel=$("titel").value.trim()||(marks[0]?marks[0].name:strecke?strecke.name:flaechen.length?flaechen[0].name:"");
+    draw(els,b,{marks:marks,strecke:strecke,flaechen:flaechen,titel:titel,story});
     $("out").style.display="block";$("dl").disabled=false;
-    $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Quelle: ${quelle} · Gefunden: ${geo.name} (${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)})`;
-    status("Fertig. Prüf bitte, ob die Markierung am richtigen Ort sitzt.");
+    $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Ausschnitt ±${Math.round(r)} m · Quelle: ${quelle} · Gefunden: ${gefunden.join(" · ")}`;
+    status(marks.length>1?"Fertig. Prüf bitte, ob alle Marker richtig sitzen (Reihenfolge = Eingabe).":"Fertig. Prüf bitte, ob die Markierung am richtigen Ort sitzt.");
   }catch(e){status("Fehler: "+e.message);}
   $("go").disabled=false;
 };
