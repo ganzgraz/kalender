@@ -333,7 +333,7 @@ $("go").onclick=async()=>{
     status("Lade Kartendaten …");let els=await fetchAreaLocal(b,geb);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,geb);}
     status("Zeichne …");
     const titel=$("titel").value.trim()||(marks[0]?marks[0].name:strecke?strecke.name:flaechen.length?flaechen[0].name:"");
-    draw(els,b,{marks:marks,strecke:strecke,flaechen:flaechen,titel:titel,story});
+    draw(els,b,{marks:$("marker").checked?marks:[],strecke:strecke,flaechen:flaechen,titel:titel,story});
     $("out").style.display="block";$("dl").disabled=false;
     $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Ausschnitt ±${Math.round(r)} m${$("gebaeude").checked&&!geb?" (Gebäude bei so weitem Ausschnitt weggelassen)":""} · Quelle: ${quelle} · Gefunden: ${gefunden.join(" · ")}`;
     status(marks.length>1?"Fertig. Prüf bitte, ob alle Marker richtig sitzen (Reihenfolge = Eingabe).":"Fertig. Prüf bitte, ob die Markierung am richtigen Ort sitzt.");
