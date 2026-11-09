@@ -56,6 +56,7 @@ main{padding:20px}
 .titel{font-weight:600;font-size:15px;word-break:break-word}
 .datei{font-size:12px;color:#888;word-break:break-word}
 .badge.neu{background:#2e7d32}
+.badge.verw{background:#777}
 .badge.lila{background:var(--lila)}
 .ext-on{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--lila);font-weight:500;cursor:pointer}
 #exthead{margin:34px 0 6px;color:var(--lila);font-size:22px}
@@ -103,6 +104,7 @@ document.getElementById('gatepw').focus();})();
 <button class="chip" data-f="Quer">Quer</button>
 <button class="chip" data-f="Hoch">Hoch</button>
 <button class="chip active" data-f="">alle</button>
+<button class="chip" data-f="__verw" title="Fotos, die in den letzten 60 Tagen für den Newsletter genommen wurden – damit nicht zweimal hintereinander dasselbe Bild kommt">Zuletzt verwendet</button>
 </div>
 <select id="bezirk"><option value="">Alle Bezirke</option></select>
 <label class="ext-on"><input type="checkbox" id="extcb"> auch freie Fotos (Wikimedia, Openverse, Pixabay)</label>
@@ -152,6 +154,19 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   function norm(t){return String(t||'').toLowerCase().replace(/ß/g,'ss');}
   function alts(w){var a=[w];SYN.forEach(function(g){var gg=g.map(norm);for(var i=0;i<gg.length;i++){var x=gg[i].trim();if(x===w||(w.length>=4&&x.indexOf(w)===0&&w.length>=x.length-2)){gg.forEach(function(y){y=y.trim();if(a.indexOf(y)<0)a.push(y);});break;}}});return a;}
   function istNeu(d){if(!d.modified)return false;var t=Date.parse(d.modified);return !isNaN(t)&&(Date.now()-t)<14*864e5;}
+  // „Zuletzt verwendet“: id -> Zeitpunkt (ISO) der letzten Verwendung, kommt vom Apps-Script
+  var VERW={};
+  function verwTs(d){var t=VERW[d.id];if(!t)return 0;var n=Date.parse(t);return isNaN(n)?0:n;}
+  function verwKurz(d){var n=verwTs(d);if(!n||(Date.now()-n)>60*864e5)return '';var x=new Date(n);return 'zuletzt '+('0'+x.getDate()).slice(-2)+'.'+('0'+(x.getMonth()+1)).slice(-2)+'.';}
+  function verwUebernehmen(list){if(!list||!list.length)return;list.forEach(function(e){if(!e||!e.id||!e.t)return;if(!VERW[e.id]||VERW[e.id]<e.t)VERW[e.id]=e.t;});}
+  function verwMelden(d){
+    if(!d||!d.id||d.ordner||!LIVE_URL)return;
+    var heute=new Date().toISOString().slice(0,10);
+    if(VERW[d.id]&&String(VERW[d.id]).slice(0,10)===heute)return; // heute schon gemeldet
+    VERW[d.id]=new Date().toISOString();
+    try{fetch(LIVE_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pw:window.GG_PW||'',aktion:'verwendet',id:d.id,datei:d.datei||''})}).catch(function(){});}catch(e){}
+    try{var c=JSON.parse(localStorage.getItem('gg_fotoliste')||'null');if(c){c.verwendet=(c.verwendet||[]).filter(function(e){return e.id!==d.id;});c.verwendet.unshift({id:d.id,datei:d.datei||'',t:VERW[d.id]});localStorage.setItem('gg_fotoliste',JSON.stringify(c));}}catch(e){}
+  }
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function card(d,i){
     var thumb = d.ordner
@@ -162,10 +177,10 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
       '<div class="titel">'+esc(d.motiv||d.datei)+'</div>'+
       (ortz?'<div class="ort">'+esc(ortz)+'</div>':'')+
       '<div class="datei">'+esc(d.datei)+'</div>'+
-      '<div><span class="badge">'+esc(d.format)+'</span>'+(istNeu(d)?' <span class="badge neu">neu</span>':'')+'</div>'+
+      '<div><span class="badge">'+esc(d.format)+'</span>'+(istNeu(d)?' <span class="badge neu">neu</span>':'')+(verwKurz(d)?' <span class="badge verw" title="War kürzlich im Newsletter – lieber ein anderes Bild nehmen">'+verwKurz(d)+'</span>':'')+'</div>'+
       '<div class="credit">'+esc(d.credit)+'</div>'+
       (d.hinweis?'<div class="hinweis">'+esc(d.hinweis)+'</div>':'')+
-      '<div class="btns">'+(d.ordner?'':'<a class="btn" href="https://drive.google.com/thumbnail?id='+esc(d.id)+'&sz=w'+(d.format==='Hoch'?'720':'1104')+'" target="_blank" rel="noopener" title="Öffnet das Bild in Newsletter-Größe – dann Rechtsklick → Bild speichern">Newsletter-Größe ('+(d.format==='Hoch'?'720':'1104')+' px)</a>')+
+      '<div class="btns">'+(d.ordner?'':'<a class="btn" data-nl="'+i+'" href="https://drive.google.com/thumbnail?id='+esc(d.id)+'&sz=w'+(d.format==='Hoch'?'720':'1104')+'" target="_blank" rel="noopener" title="Öffnet das Bild in Newsletter-Größe – dann Rechtsklick → Bild speichern">Newsletter-Größe ('+(d.format==='Hoch'?'720':'1104')+' px)</a>')+
       '<a class="btn secondary" href="'+esc(d.orig||d.url)+'" target="_blank" rel="noopener" title="'+(d.orig?'Originaldatei in voller Auflösung – zum Zuschneiden':'Datei in Drive')+'">'+(d.ordner?'Ordner öffnen':(d.orig?'Original (volle Auflösung)':'Original in Drive'))+'</a>'+
       '<button class="btn secondary" data-i="'+i+'">Credit kopieren</button></div>'+
       '</div></div>';
@@ -209,9 +224,9 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   }
   function ladeDrive(){
     if(!LIVE_URL)return;
-    try{var cached=JSON.parse(localStorage.getItem('gg_fotoliste')||'null');if(cached&&cached.items){addLive(cached.items);}}catch(e){}
+    try{var cached=JSON.parse(localStorage.getItem('gg_fotoliste')||'null');if(cached&&cached.items){verwUebernehmen(cached.verwendet);addLive(cached.items);}}catch(e){}
     var cnt0=document.getElementById('count');cnt0.textContent=cnt0.textContent+' · Drive-Fotos werden geladen …';
-    fetch(LIVE_URL+'?pw='+encodeURIComponent(window.GG_PW||'')).then(function(r){return r.json();}).then(function(j){if(!j.items)return;try{localStorage.setItem('gg_fotoliste',JSON.stringify({t:Date.now(),items:j.items||[]}));}catch(e){}addLive(j.items||[]);render();}).catch(function(){render();});
+    fetch(LIVE_URL+'?pw='+encodeURIComponent(window.GG_PW||'')).then(function(r){return r.json();}).then(function(j){if(!j.items)return;try{localStorage.setItem('gg_fotoliste',JSON.stringify({t:Date.now(),items:j.items||[],verwendet:j.verwendet||[]}));}catch(e){}verwUebernehmen(j.verwendet);addLive(j.items||[]);render();}).catch(function(){render();});
   }
   if(KATALOG_CSV){
     fetch(KATALOG_CSV).then(function(r){return r.text();}).then(function(t){var k=katalogAusSheet(t);if(k){DATA.length=0;k.forEach(function(d){DATA.push(d);});var f=document.getElementById('foot');f.textContent='Katalog live aus Google Sheet: '+k.filter(function(d){return !d.ordner;}).length+' Fotos · Fragen an die Redaktionsleitung';var b2={};DATA.forEach(function(d){if(d.bezirk)b2[d.bezirk]=1;});sel.innerHTML='<option value="">Alle Bezirke</option>';Object.keys(b2).sort().forEach(function(b){var o=document.createElement('option');o.value=b;o.textContent=b;sel.appendChild(o);});render();}}).catch(function(){}).then(ladeDrive);
@@ -219,18 +234,23 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   function render(){
     var words=norm(q.value).split(/\s+/).filter(Boolean), b=sel.value;
     var out=[];
+    var nurVerw=(fmt==='__verw');
     DATA.forEach(function(d,i){
-      if(fmt && d.format!==fmt) return;
+      if(nurVerw){ if(!verwKurz(d)) return; }
+      else if(fmt && d.format!==fmt) return;
       if(b && d.bezirk!==b) return;
       var hay=norm(d.datei+' '+d.ort+' '+d.bezirk+' '+d.motiv+' '+d.hinweis+' '+d.credit)+' ';
       for(var k=0;k<words.length;k++){ var al=alts(words[k]),hit=false; for(var m=0;m<al.length;m++){ if(hay.indexOf(al[m])>=0){hit=true;break;} } if(!hit) return; }
-      out.push({h:card(d,i),n:istNeu(d),m:d.modified||''});
+      out.push({h:card(d,i),n:istNeu(d),m:d.modified||'',v:verwTs(d)});
     });
-    out.sort(function(a,b){if(a.n!==b.n)return a.n?-1:1;if(a.n&&b.n)return a.m<b.m?1:-1;return 0;});
+    if(nurVerw) out.sort(function(a,b){return b.v-a.v;});
+    else out.sort(function(a,b){if(a.n!==b.n)return a.n?-1:1;if(a.n&&b.n)return a.m<b.m?1:-1;return 0;});
     out=out.map(function(o){return o.h;});
     grid.innerHTML=out.join('');
     empty.hidden=out.length>0;
-    count.textContent=out.length+' von '+DATA.length+' Treffern';
+    if(nurVerw&&!out.length){empty.textContent='In den letzten 60 Tagen wurde noch kein Foto über die Bildsuche genommen. Die Liste füllt sich, sobald jemand „Newsletter-Größe“ oder „Credit kopieren“ klickt.';}
+    else{empty.textContent='Keine Treffer. Für Orte und Adressen: oben „Karte erzeugen“ – oder Wunsch an Karin.';}
+    count.textContent=out.length+' von '+DATA.length+' Treffern'+(nurVerw?' · zuletzt verwendet, neueste zuerst':'');
   }
   document.querySelector('.tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(x){x.classList.toggle('active',x===t);});var k=t.getAttribute('data-t')==='karte';document.body.classList.toggle('show-karte',k);if(k){var f=document.getElementById('karteframe');if(!f.src)f.src=f.getAttribute('data-src');}});
   var extcb=document.getElementById('extcb'),extsec=document.getElementById('ext'),extgrid=document.getElementById('extgrid'),EXT=[],extTimer=null,extSeq=0;
@@ -393,8 +413,10 @@ var DATA = [{"datei": "_DSC0805.JPG", "ort": "", "bezirk": "", "motiv": "Hausfas
   sel.addEventListener('change',render);
   chips.addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;fmt=c.getAttribute('data-f');Array.prototype.forEach.call(chips.children,function(x){x.classList.toggle('active',x===c);});render();});
   grid.addEventListener('click',function(e){
+    var nl=e.target.closest('a[data-nl]');if(nl){verwMelden(DATA[+nl.getAttribute('data-nl')]);return;}
     var btn=e.target.closest('button[data-i]');if(!btn)return;
-    var txt=DATA[+btn.getAttribute('data-i')].credit;
+    var dd=DATA[+btn.getAttribute('data-i')];verwMelden(dd);
+    var txt=dd.credit;
     function ok(){btn.textContent='Kopiert!';btn.classList.add('done');setTimeout(function(){btn.textContent='Credit kopieren';btn.classList.remove('done');},1500);}
     function fallback(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(x){alert(txt);}document.body.removeChild(t);}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,fallback);}else{fallback();}
