@@ -181,9 +181,12 @@ async function strassenGraph(){
   const nodes=new Map();const key=p=>p[0]+','+p[1];
   const node=p=>{const k=key(p);let n=nodes.get(k);if(!n){n={p:p,adj:[]};nodes.set(k,n);}return n;};
   for(const sk in S){for(const w of S[sk].w){const pts=wayPts(w);for(let i=1;i<pts.length;i++){const a=node(pts[i-1]),b=node(pts[i]);const d=dist(a.p,b.p);a.adj.push([b,d,sk]);b.adj.push([a,d,sk]);}}}
-  GRAPH={S:S,nodes:[...nodes.values()]};return GRAPH;
+  // Zusammenhangskomponenten: Start/Ziel nur ans Hauptnetz andocken (Inseln wie Fußgängerzonen-Stücke hängen oft nur über unbenannte Wege dran)
+  const all=[...nodes.values()];let cid=0,bestC=0,bestN=-1;
+  for(const n of all){if(n.c!==undefined)continue;const st=[n];n.c=cid;let cnt=0;while(st.length){const x=st.pop();cnt++;for(const [m] of x.adj)if(m.c===undefined){m.c=cid;st.push(m);}}if(cnt>bestN){bestN=cnt;bestC=cid;}cid++;}
+  GRAPH={S:S,nodes:all,haupt:bestC};return GRAPH;
 }
-function naechsterKnoten(G,p,erlaubt){let best=null,bd=1e9;for(const n of G.nodes){if(erlaubt&&!n.adj.some(a=>erlaubt.has(a[2])))continue;const d=dist(n.p,p);if(d<bd){bd=d;best=n;}}return bd<400?best:null;}
+function naechsterKnoten(G,p,erlaubt){let best=null,bd=1e9;for(const n of G.nodes){if(erlaubt?!n.adj.some(a=>erlaubt.has(a[2])):n.c!==G.haupt)continue;const d=dist(n.p,p);if(d<bd){bd=d;best=n;}}return bd<400?best:null;}
 function dijkstra(G,a,b,erlaubt){
   const D=new Map([[a,0]]),prev=new Map();const done=new Set();
   const H=[];const push=(d,n)=>{H.push([d,n]);let i=H.length-1;while(i>0){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p;}};
