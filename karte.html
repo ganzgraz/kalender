@@ -280,7 +280,9 @@ function draw(els,b,opt){
   // Flächenrand
   if(opt.flaechen)for(const f of opt.flaechen){for(const ring of f.polys){path(ring);g.closePath();g.strokeStyle=CI.orange;g.lineWidth=4;g.lineJoin="round";g.stroke();}}
   // Strecke
-  if(opt.strecke)for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11;g.lineCap="round";g.lineJoin="round";g.stroke();path(pts);g.strokeStyle=CI.orange;g.lineWidth=8;g.stroke();}
+  if(opt.strecke){g.lineCap="round";g.lineJoin="round";
+    for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11;g.stroke();}   // erst alle Ränder …
+    for(const pts of opt.strecke.lines){path(pts);g.strokeStyle=CI.orange;g.lineWidth=8;g.stroke();}} // … dann alle Füllungen, sonst Nähte
   // Marker (bei mehreren nummeriert)
   const marks=opt.marks||[];const viele=marks.length>1;
   const belegt=marks.map(m=>{const [x,y]=P(m.lon,m.lat);return [x-22,y-22,44,44];}); // Marker-Kreise, dazu kommen die Pillen
