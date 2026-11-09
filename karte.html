@@ -99,7 +99,7 @@ ${withBuildings?`way["building"]${bb};`:""});out geom qt;`;
 
 // ===== Variante A: vorab aufbereitete Graz-Kacheln (liegen im Drive, Ordner „Kartenkacheln“, kommen über das Apps-Script) =====
 const KACHEL_URL="https://script.google.com/macros/s/AKfycbyPH1lhjPadz03JSXzCRWA0YWIZuRn3Zz-Rk3noCPZXss8c_4WrH1ap4gyIJeNvv8SS6g/exec";
-const GRID={lat0:46.98,lon0:15.33,dlat:0.009,dlon:0.0132,ni:19,nj:16}; // Raster ≈ 1 km, deckt Graz (46,98–47,15 N / 15,33–15,54 O)
+const GRID={lat0:46.98,lon0:15.33,dlat:0.009,dlon:0.0132,ni:19,nj:16}; // Raster ≈ 1 km, deckt Graz (46,98–47,15 N / 15,33–15,54 O); Kacheln: Ordner kacheln/ im Repo (aus Graz.osm.pbf, kacheln_bauen.py), Stand 09.11.2026
 function pw(){try{return localStorage.getItem('gg_pwp')||'';}catch(e){return '';}}
 function tileName(i,j){return 't_'+i+'_'+j;}
 function tileBox(i,j){const s=GRID.lat0+i*GRID.dlat,w=GRID.lon0+j*GRID.dlon;return {s:s,w:w,n:s+GRID.dlat,e:w+GRID.dlon};}
@@ -111,9 +111,12 @@ async function kachel(name){
   let r=null;
   try{const c=await caches.open('gg-kacheln-v1');const hit=await c.match(name);if(hit){r=await hit.json();}}catch(e){}
   if(!r){
-    const res=await fetch(KACHEL_URL+'?kachel='+encodeURIComponent(name)+'&pw='+encodeURIComponent(pw()));
-    if(!res.ok)throw new Error('Kachel '+name+': HTTP '+res.status);
-    r=await res.json();if(!r||r.ok===false){tileMem[name]=null;return null;}
+    // 1. Kacheln liegen direkt neben karte.html (GitHub Pages, Ordner kacheln/), 2. Ausweich: Apps-Script/Drive
+    try{const res0=await fetch('kacheln/'+encodeURIComponent(name)+'.json',{cache:'force-cache'});if(res0.ok){r=await res0.json();}}catch(e){}
+    if(!r){const res=await fetch(KACHEL_URL+'?kachel='+encodeURIComponent(name)+'&pw='+encodeURIComponent(pw()));
+      if(!res.ok)throw new Error('Kachel '+name+': HTTP '+res.status);
+      r=await res.json();}
+    if(!r||r.ok===false){tileMem[name]=null;return null;}
     try{const c=await caches.open('gg-kacheln-v1');await c.put(name,new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}}));}catch(e){}
   }
   tileMem[name]=r;return r;
