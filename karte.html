@@ -40,12 +40,12 @@
       <div><label>Format</label><select id="format"><option value="quer" selected>Newsletter 1152×768</option><option value="story">Story 1080×1920</option></select></div>
     </div>
     <label><input type="checkbox" id="marker" checked style="width:auto;margin-right:6px">Markierung mit Beschriftung setzen</label>
-    <label><input type="checkbox" id="gebaeude" style="width:auto;margin-right:6px">Gebäude einzeichnen (dauert deutlich länger, oft Server-Timeout)</label>
+    <label><input type="checkbox" id="gebaeude" checked style="width:auto;margin-right:6px">Gebäude einzeichnen</label>
     <button class="primary" id="go">Karte erzeugen</button>
     <button class="secondary" id="dl" disabled>PNG herunterladen</button>
     <div id="status"></div>
     <details><summary>Hinweise</summary>
-      <p>Die Karte wird direkt im Browser aus OpenStreetMap-Daten gezeichnet (Overpass). Das dauert 20–60 Sekunden; bei „504“ oder „zu viele Anfragen“ einfach noch einmal klicken. Im Newsletter: volle Breite (Querformat), Bildunterschrift steht schon auf der Karte – zusätzlich als 12-px-Zeile darunter: <b>Grafik: ganzgraz · Kartendaten: © OpenStreetMap-Mitwirkende</b>.</p>
+      <p>Die Karte wird im Browser aus vorbereiteten OpenStreetMap-Kacheln von Graz gezeichnet (Stand November 2026) und ist in wenigen Sekunden fertig. Nur wenn eine Kachel fehlt, wird live bei Overpass nachgeladen (20–60 s, bei „504“ nochmal klicken). Im Newsletter: volle Breite (Querformat), Bildunterschrift steht schon auf der Karte – zusätzlich als 12-px-Zeile darunter: <b>Grafik: ganzgraz · Kartendaten: © OpenStreetMap-Mitwirkende</b>.</p>
       <p>Findet die Suche einen Ort nicht: Straße + Hausnummer probieren oder den Namen so schreiben, wie er auf Straßenschildern steht (z. B. „Kaiser-Josef-Platz“). Keine Karten bei Unfallopfern oder Privatadressen.</p>
     </details>
   </div>
@@ -96,6 +96,104 @@ way["leisure"~"^(park|garden|playground|pitch)$"]${bb};way["landuse"~"^(grass|fo
 ${withBuildings?`way["building"]${bb};`:""});out geom qt;`;
   return (await overpass(q)).elements||[];
 }
+
+// ===== Variante A: vorab aufbereitete Graz-Kacheln (liegen im Drive, Ordner „Kartenkacheln“, kommen über das Apps-Script) =====
+const KACHEL_URL="https://script.google.com/macros/s/AKfycbyPH1lhjPadz03JSXzCRWA0YWIZuRn3Zz-Rk3noCPZXss8c_4WrH1ap4gyIJeNvv8SS6g/exec";
+const GRID={lat0:46.98,lon0:15.33,dlat:0.009,dlon:0.0132,ni:19,nj:16}; // Raster ≈ 1 km, deckt Graz (46,98–47,15 N / 15,33–15,54 O)
+function pw(){try{return localStorage.getItem('gg_pwp')||'';}catch(e){return '';}}
+function tileName(i,j){return 't_'+i+'_'+j;}
+function tileBox(i,j){const s=GRID.lat0+i*GRID.dlat,w=GRID.lon0+j*GRID.dlon;return {s:s,w:w,n:s+GRID.dlat,e:w+GRID.dlon};}
+function tilesFor(b){const out=[];const i0=Math.max(0,Math.floor((b.s-GRID.lat0)/GRID.dlat)),i1=Math.min(GRID.ni-1,Math.floor((b.n-GRID.lat0)/GRID.dlat));const j0=Math.max(0,Math.floor((b.w-GRID.lon0)/GRID.dlon)),j1=Math.min(GRID.nj-1,Math.floor((b.e-GRID.lon0)/GRID.dlon));for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++)out.push([i,j]);return out;}
+const CLS={h1:{highway:"primary"},h2:{highway:"residential"},tr:{railway:"tram"},ra:{railway:"rail"},wa:{natural:"water"},ww:{waterway:"river"},gr:{leisure:"park"},bu:{building:"yes"}};
+const tileMem={};
+async function kachel(name){
+  if(tileMem[name]!==undefined)return tileMem[name];
+  let r=null;
+  try{const c=await caches.open('gg-kacheln-v1');const hit=await c.match(name);if(hit){r=await hit.json();}}catch(e){}
+  if(!r){
+    const res=await fetch(KACHEL_URL+'?kachel='+encodeURIComponent(name)+'&pw='+encodeURIComponent(pw()));
+    if(!res.ok)throw new Error('Kachel '+name+': HTTP '+res.status);
+    r=await res.json();if(!r||r.ok===false){tileMem[name]=null;return null;}
+    try{const c=await caches.open('gg-kacheln-v1');await c.put(name,new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}}));}catch(e){}
+  }
+  tileMem[name]=r;return r;
+}
+function decode(t,withBuildings){
+  const out=[];const s=t.s,w=t.w;
+  for(const e of t.e){const id=e[0],cls=e[1],xy=e[2];if(cls==='bu'&&!withBuildings)continue;const geom=[];for(let k=0;k<xy.length;k+=2)geom.push({lon:w+xy[k]/1e5,lat:s+xy[k+1]/1e5});out.push({id:id,tags:CLS[cls]||{},geometry:geom});}
+  return out;
+}
+async function fetchAreaLocal(b,withBuildings){
+  const ts=tilesFor(b);if(!ts.length)return null;
+  const got=await Promise.all(ts.map(ij=>kachel(tileName(ij[0],ij[1]))));
+  if(got.some(x=>!x))return null; // mindestens eine Kachel fehlt → Overpass
+  const seen={},els=[];for(const t of got)for(const el of decode(t,withBuildings)){if(seen[el.id])continue;seen[el.id]=1;els.push(el);}
+  return els;
+}
+let NAMEN=null;
+async function namen(){if(NAMEN!==null)return NAMEN;try{NAMEN=(await kachel('idx_namen'))||false;}catch(e){NAMEN=false;}return NAMEN;}
+function normN(s){return String(s||'').toLowerCase().replace(/ß/g,'ss').replace(/\s+/g,' ').replace(/strasse|straße|str\./g,'str').trim();}
+async function geocodeLocal(name){
+  const idx=await namen();if(!idx)return null;
+  name=name.replace(/"/g,'').trim();const m=name.match(/^(.+?)\s+(\d+[a-zA-Z]?)$/);
+  if(m){const a=idx.a[normN(m[1])+'|'+m[2].toLowerCase()];if(a)return {lat:a[0],lon:a[1],name:name};}
+  const k=normN(name);
+  const p=idx.p[k];if(p)return {lat:p[0],lon:p[1],name:p[2]||name};
+  const st=idx.s[k];if(st)return {lat:st[0],lon:st[1],name:st[2]||name};
+  const keys=Object.keys(idx.p).filter(x=>x.indexOf(k)>=0).sort((x,y)=>x.length-y.length);
+  if(k.length>=4&&keys.length){const q=idx.p[keys[0]];return {lat:q[0],lon:q[1],name:q[2]||name};}
+  return null;
+}
+// ----- Einmaliger Aufbau der Kacheln (nur mit ?build=1 sichtbar) -----
+if(/[?&]build=1/.test(location.search)){
+ document.addEventListener("DOMContentLoaded",function(){
+ const box=document.createElement('div');box.className='box';box.innerHTML='<b>Kacheln bauen (einmalig, Redaktionsleitung)</b><div id="bstat" style="font-size:13px;margin-top:8px;white-space:pre-wrap;max-height:320px;overflow:auto;background:#f4f4f4;padding:8px;border-radius:8px"></div><button class="primary" id="bgo">Start / Weiter</button><button class="secondary" id="bidx">Namensindex zusammenführen</button>';
+ document.querySelector('main').appendChild(box);
+ const log=t=>{const d=$("bstat");d.textContent+=t+"\n";d.scrollTop=1e9;};
+ const enc=(els,b)=>{const out=[];for(const el of els){if(!el.geometry)continue;const t=el.tags||{};let cls=null;
+   if(t.highway)cls=["motorway","trunk","primary","secondary","tertiary"].includes(t.highway)?'h1':'h2';else if(t.railway==='tram')cls='tr';else if(t.railway==='rail')cls='ra';else if(t.natural==='water')cls='wa';else if(t.waterway)cls='ww';else if(t.leisure||t.landuse)cls='gr';else if(t.building)cls='bu';
+   if(!cls)continue;const xy=[];for(const p of el.geometry){xy.push(Math.round((p.lon-b.w)*1e5),Math.round((p.lat-b.s)*1e5));}out.push([el.id,cls,xy]);}return out;};
+ const post=async(name,obj)=>{const r=await fetch(KACHEL_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pw:pw(),aktion:'kachel',name:name,data:JSON.stringify(obj)})});const j=await r.json();if(!j.ok)throw new Error(j.fehler||'Upload-Fehler');return j;};
+ $("bgo").onclick=async()=>{ $("bgo").disabled=true;
+  try{
+   const lr=await fetch(KACHEL_URL+'?kachelliste=1&pw='+encodeURIComponent(pw()));const have=new Set(((await lr.json()).kacheln||[]).map(k=>k.name));
+   log('Vorhanden: '+have.size+' Dateien');
+   for(let i=0;i<GRID.ni;i++)for(let j=0;j<GRID.nj;j++){
+     const tn=tileName(i,j),nn='n_'+i+'_'+j;if(have.has(tn)&&have.has(nn))continue;
+     const b=tileBox(i,j),bb='('+b.s+','+b.w+','+b.n+','+b.e+')';
+     log(tn+' …');
+     if(!have.has(tn)){
+       const q='[out:json][timeout:90];(way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|living_street|pedestrian|unclassified|service)$"]'+bb+';way["railway"~"^(tram|rail)$"]'+bb+';way["waterway"~"^(river|stream|canal)$"]'+bb+';way["natural"="water"]'+bb+';way["leisure"~"^(park|garden|playground|pitch)$"]'+bb+';way["landuse"~"^(grass|forest|meadow|cemetery)$"]'+bb+';way["building"]'+bb+';);out geom qt;';
+       const els=(await overpass(q)).elements||[];const r=await post(tn,{v:1,s:b.s,w:b.w,e:enc(els,b)});log('  Karte: '+els.length+' Elemente, '+Math.round(r.bytes/1024)+' KB');have.add(tn);}
+     if(!have.has(nn)){
+       const q2='[out:json][timeout:90];(nwr["addr:housenumber"]["addr:street"]'+bb+';way["highway"]["name"]'+bb+';nwr["place"~"^(square|neighbourhood|suburb|quarter)$"]["name"]'+bb+';nwr["leisure"~"^(park|garden)$"]["name"]'+bb+';nwr["amenity"~"^(townhall|theatre|cinema|museum|university|college|school|hospital|place_of_worship|library|marketplace|arts_centre|community_centre)$"]["name"]'+bb+';nwr["tourism"~"^(attraction|museum|gallery|viewpoint|zoo)$"]["name"]'+bb+';nwr["railway"="station"]["name"]'+bb+';nwr["public_transport"="station"]["name"]'+bb+';nwr["building"]["name"]'+bb+';);out center qt;';
+       const els=(await overpass(q2)).elements||[];const n={s:{},p:{},a:{}};
+       for(const el of els){const t=el.tags||{};const lat=el.lat!=null?el.lat:(el.center&&el.center.lat),lon=el.lon!=null?el.lon:(el.center&&el.center.lon);if(lat==null)continue;const L=[+lat.toFixed(5),+lon.toFixed(5)];
+         if(t['addr:housenumber']&&t['addr:street'])n.a[normN(t['addr:street'])+'|'+String(t['addr:housenumber']).toLowerCase()]=L;
+         if(!t.name)continue;const k=normN(t.name);
+         if(t.highway&&t.highway!=='pedestrian'&&!t.place){(n.s[k]=n.s[k]||[]).push([L[0],L[1],t.name]);}
+         else{const rank=t.place?0:(t.leisure||t.railway||t.public_transport||t.highway==='pedestrian')?1:(t.amenity||t.tourism)?2:3;const cur=n.p[k];if(!cur||rank<cur[3])n.p[k]=[L[0],L[1],t.name,rank];}
+       }
+       await post(nn,n);log('  Namen: '+Object.keys(n.s).length+' Straßen, '+Object.keys(n.p).length+' Orte, '+Object.keys(n.a).length+' Adressen');have.add(nn);}
+     await new Promise(r=>setTimeout(r,1200));
+   }
+   log('Alle Kacheln da. Jetzt „Namensindex zusammenführen“ klicken.');
+  }catch(e){log('Fehler: '+e.message+' – nochmal „Start / Weiter“ klicken, es geht dort weiter.');}
+  $("bgo").disabled=false;};
+ $("bidx").onclick=async()=>{ $("bidx").disabled=true;try{
+   const lr=await fetch(KACHEL_URL+'?kachelliste=1&pw='+encodeURIComponent(pw()));const names=((await lr.json()).kacheln||[]).map(k=>k.name).filter(n=>/^n_\d+_\d+$/.test(n));
+   log('Führe '+names.length+' Namensdateien zusammen …');
+   const idx={s:{},p:{},a:{}};const S={};
+   for(let k=0;k<names.length;k+=6){const part=names.slice(k,k+6);const got=await Promise.all(part.map(n=>fetch(KACHEL_URL+'?kachel='+n+'&pw='+encodeURIComponent(pw())).then(r=>r.json())));
+     for(const n of got){if(!n||!n.a)continue;Object.assign(idx.a,n.a);for(const key in n.s){(S[key]=S[key]||[]).push.apply(S[key],n.s[key]);}for(const key in n.p){const c=idx.p[key];if(!c||n.p[key][3]<c[3])idx.p[key]=n.p[key];}}
+     log('  '+Math.min(k+6,names.length)+'/'+names.length);}
+   for(const key in S){const arr=S[key];const lat=arr.reduce((a,x)=>a+x[0],0)/arr.length,lon=arr.reduce((a,x)=>a+x[1],0)/arr.length;idx.s[key]=[+lat.toFixed(5),+lon.toFixed(5),arr[0][2]];}
+   for(const key in idx.p)idx.p[key]=idx.p[key].slice(0,3);
+   const r=await post('idx_namen',idx);log('Index gespeichert: '+Object.keys(idx.s).length+' Straßen, '+Object.keys(idx.p).length+' Orte, '+Object.keys(idx.a).length+' Adressen, '+Math.round(r.bytes/1024)+' KB');
+   try{const c=await caches.open('gg-kacheln-v1');await c.delete('idx_namen');}catch(e){}
+  }catch(e){log('Fehler: '+e.message);}$("bidx").disabled=false;};
+ });
+}
 function draw(els,b,opt){
   const W=opt.story?1080:1152,H=opt.story?1920:768;const c=$("c");c.width=W;c.height=H;const g=c.getContext("2d");
   const k=Math.cos((b.s+b.n)/2*Math.PI/180);
@@ -135,14 +233,14 @@ $("go").onclick=async()=>{
   $("go").disabled=true;$("dl").disabled=true;const t0=Date.now();
   try{
     await document.fonts.load('700 22px "League Spartan"');await document.fonts.load('16px Montserrat');
-    status("Suche „"+ort+"“ in Graz …");const geo=await geocode(ort);
+    status("Suche „"+ort+"“ in Graz …");let geo=await geocodeLocal(ort);let quelle="Kacheln";if(!geo){quelle="Overpass";geo=await geocode(ort);}
     const story=$("format").value==="story";const r=+$("radius").value*(story?2.2:1);
     const b=bbox(geo.lat,geo.lon,r,story?1080/1920:1152/768);
-    status("Lade Kartendaten (10–40 s) …");const els=await fetchArea(b,$("gebaeude").checked);
+    status("Lade Kartendaten …");let els=await fetchAreaLocal(b,$("gebaeude").checked);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,$("gebaeude").checked);}
     status("Zeichne …");
     draw(els,b,{lat:geo.lat,lon:geo.lon,marker:$("marker").checked,label:$("marker").checked?($("ort").value.trim()):"",titel:$("titel").value.trim()||geo.name,story});
     $("out").style.display="block";$("dl").disabled=false;
-    $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Gefunden: ${geo.name} (${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)})`;
+    $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Quelle: ${quelle} · Gefunden: ${geo.name} (${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)})`;
     status("Fertig. Prüf bitte, ob die Markierung am richtigen Ort sitzt.");
   }catch(e){status("Fehler: "+e.message);}
   $("go").disabled=false;
