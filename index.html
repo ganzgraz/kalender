@@ -1152,14 +1152,15 @@ document.addEventListener("click", ev => {
   if (!img || !img.src) return;
   ev.preventDefault();
   const karte = img.closest(".gg-card");
-  const e = karte ? allEvents.find(x => x.id === karte.dataset.eid) : null;
+  const ids = karte ? (karte.dataset.eid || "").split(" ") : [];   // bei Vorstellungen mehrere IDs
+  const e = allEvents.find(x => ids.indexOf(x.id) >= 0) || null;
   const credit = img.closest("figure") && img.closest("figure").querySelector(".gg-credit");
   const box = document.createElement("figure");
   box.className = "gg-lightbox";
   box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Bild in groß");
   box.innerHTML = '<button type="button" class="gg-lightbox-zu" aria-label="Schließen">×</button>' +
     '<img src="' + esc(img.src) + '" alt="' + esc(e ? e.titel : "") + '">' +
-    '<figcaption>' + esc(e ? e.titel : "") + (credit ? ' · ' + esc(credit.textContent) : '') + '</figcaption>';
+    '<figcaption>' + [e ? esc(e.titel) : "", credit ? esc(credit.textContent) : ""].filter(Boolean).join(" · ") + '</figcaption>';
   const zu = () => { box.remove(); document.removeEventListener("keydown", esc_); document.body.style.overflow = ""; };
   const esc_ = k => { if (k.key === "Escape") zu(); };
   box.addEventListener("click", zu);
