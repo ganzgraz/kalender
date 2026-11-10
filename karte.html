@@ -159,9 +159,10 @@ async function geocodeLocal(name){
   return null;
 }
 // ===== Extras (Stand 09.11.2026): Straßenzüge + Flächen aus kacheln/strassen.json und kacheln/flaechen.json (extras_bauen.py) =====
+const EXTRA_V='2026-11-10'; // bei neuen strassen.json/flaechen.json hochzählen, sonst nimmt der Browser die alte Datei aus dem Cache
 async function extraDatei(name){ // ohne Cache-API, Dateien sind größer; Browser-Cache reicht
   if(tileMem[name]!==undefined)return tileMem[name];
-  let r=null;try{const res=await fetch('kacheln/'+name+'.json',{cache:'force-cache'});if(res.ok)r=await res.json();}catch(e){}
+  let r=null;try{const res=await fetch('kacheln/'+name+'.json?v='+EXTRA_V,{cache:'force-cache'});if(res.ok)r=await res.json();}catch(e){}
   if(!r){try{const res=await fetch(KACHEL_URL+'?kachel='+name+'&pw='+encodeURIComponent(pw()));if(res.ok){r=await res.json();if(r&&r.ok===false)r=null;}}catch(e){}}
   tileMem[name]=r||false;return tileMem[name];
 }
