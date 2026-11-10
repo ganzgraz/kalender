@@ -1857,12 +1857,14 @@ function appHinweisZeigen(anker) {
   const SYM_TEILEN = '<svg class="gg-sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Teilen-Symbol"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
   const SYM_PUNKTE = '<span class="gg-sym-txt">•••</span>';
   const SYM_MENUE = '<span class="gg-sym-txt">⋮</span>';
+  const SYM_MENU = '<span class="gg-sym-txt">≡</span>';
   const iosSchritte =
-    '<li>Schließ dieses Fenster. Tippe dann in der <strong>Leiste von Safari</strong> (dort, wo die Adresse steht) auf ' + SYM_TEILEN + '.<br>' +
-      '<span class="gg-app-klein">Siehst du das nicht? Dann in dieser Leiste auf ' + SYM_PUNKTE + ' und dort auf <strong>„Teilen“</strong>. ' +
-      '<strong>Nicht</strong> die lila „Teilen“-Knöpfe bei den Events – die teilen nur ein Event.</span></li>' +
-    '<li>In der Liste, die aufgeht, <strong>nach unten wischen</strong> und <strong>„Zum Home-Bildschirm“</strong> antippen.</li>' +
-    '<li>Oben rechts auf <strong>„Hinzufügen“</strong>. Fertig – das ganzgraz-Symbol ist jetzt bei deinen Apps.</li>';
+    '<li>Schließ dieses Fenster. Tippe dann <strong>ganz unten in der grauen Adressleiste</strong> (wo „ganzgraz.github.io“ steht) <strong>links auf ' + SYM_MENU + '</strong>.<br>' +
+      '<span class="gg-app-klein">Ältere iPhones: dort gleich auf ' + SYM_TEILEN + ' tippen und mit Schritt 3 weitermachen. ' +
+      '<strong>Nicht</strong> die lila „Teilen“-Knöpfe bei den Events nehmen.</span></li>' +
+    '<li>Im Menü auf <strong>„Teilen“</strong> (Englisch: „Share“).</li>' +
+    '<li>Unten auf <strong>„Mehr anzeigen“</strong> (Pfeil nach unten, „View More“), dann <strong>„Zum Home-Bildschirm“</strong> („Add to Home Screen“).</li>' +
+    '<li>Oben rechts <strong>„Hinzufügen“</strong> („Add“). Fertig – das ganzgraz-Symbol ist jetzt bei deinen Apps.</li>';
   const androidSchritte =
     '<li>Tippe <strong>oben rechts</strong> auf ' + SYM_MENUE + ' (drei Punkte).</li>' +
     '<li><strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> antippen.</li>' +
