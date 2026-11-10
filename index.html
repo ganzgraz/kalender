@@ -449,6 +449,15 @@
     border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.5); background: #fff;
   }
   .gg-lightbox figcaption { color: #ddd; font-size: 12px; margin-top: 10px; text-align: center; }
+  .gg-app-karte { background: #fff; color: #222; border-radius: 16px; padding: 22px 20px 18px; max-width: 360px;
+    width: 100%; box-sizing: border-box; cursor: default; font-size: 15px; line-height: 1.45; text-align: left; }
+  .gg-app-karte h3 { margin: 0 0 12px; font-size: 18px; color: var(--gg-purple); }
+  .gg-app-karte ol { margin: 0 0 14px; padding-left: 20px; }
+  .gg-app-karte li { margin-bottom: 8px; }
+  .gg-app-karte .gg-app-knopf { display: block; text-align: center; background: var(--gg-purple); color: #fff;
+    border: none; border-radius: 999px; padding: 11px 16px; font: inherit; font-weight: 700; text-decoration: none;
+    cursor: pointer; margin-top: 8px; width: 100%; box-sizing: border-box; }
+  .gg-app-karte .gg-app-knopf.zweit { background: #f1eaff; color: var(--gg-purple); }
   .gg-lightbox-zu {
     position: absolute; top: 10px; right: 12px; width: 40px; height: 40px; border: 0; border-radius: 50%;
     background: rgba(255,255,255,.15); color: #fff; font-size: 26px; line-height: 40px; cursor: pointer;
@@ -1153,28 +1162,19 @@ document.addEventListener("click", ev => {
   const e = el.dataset.i ? allEvents.find(x => x.idx === Number(el.dataset.i)) : null;
   zaehle(el.dataset.z, e ? e.titel : "");
 }, true);
-// Bild groß ansehen (Lightbox). Schließen: Tipp irgendwohin, ×, Esc oder Zurück-Geste.
-document.addEventListener("click", ev => {
-  const img = ev.target.closest(".gg-img");
-  if (!img || !img.src) return;
-  ev.preventDefault();
-  const karte = img.closest(".gg-card");
-  const ids = karte ? (karte.dataset.eid || "").split(" ") : [];   // bei Vorstellungen mehrere IDs
-  const e = allEvents.find(x => ids.indexOf(x.id) >= 0) || null;
-  const credit = img.closest("figure") && img.closest("figure").querySelector(".gg-credit");
-  const box = document.createElement("figure");
-  box.className = "gg-lightbox";
-  box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Bild in groß");
+/* Ebene über dem Kalender (Bild groß, App-Anleitung). Im iframe auf ganzgraz.at ist der
+   Rahmen so hoch wie der ganze Kalender – "fixed" würde mitten im Rahmen landen, weit weg
+   vom Bildschirm. Darum: Welcher Teil gerade sichtbar ist, verrät der IntersectionObserver
+   (der schneidet auch im fremden iframe mit dem echten Sichtfenster zu); dorthin kommt der Inhalt. */
+function ebeneOeffnen(klasse, innerHtml, anker, opt) {
+  opt = opt || {};
+  const box = document.createElement("div");
+  box.className = "gg-lightbox " + (klasse || "");
+  box.setAttribute("role", "dialog");
   box.innerHTML = '<div class="gg-lb-inhalt">' +
-    '<button type="button" class="gg-lightbox-zu" aria-label="Schließen">×</button>' +
-    '<img src="' + esc(img.src) + '" alt="' + esc(e ? e.titel : "") + '">' +
-    '<figcaption>' + [e ? esc(e.titel) : "", credit ? esc(credit.textContent) : ""].filter(Boolean).join(" · ") + '</figcaption>' +
-    '</div>';
+    '<button type="button" class="gg-lightbox-zu" aria-label="Schließen">×</button>' + innerHtml + '</div>';
+  const inhalt = box.querySelector(".gg-lb-inhalt");
   if (window.parent !== window) {
-    // Im iframe ist der Rahmen so hoch wie der ganze Kalender. Welcher Teil gerade am
-    // Bildschirm zu sehen ist, verrät der IntersectionObserver (der schneidet auch im
-    // fremden iframe mit dem echten Sichtfenster zu). Dorthin kommt der Inhalt.
-    const inhalt = box.querySelector(".gg-lb-inhalt");
     const docH = document.documentElement.scrollHeight;
     box.style.position = "absolute";
     box.style.height = docH + "px";
@@ -1183,8 +1183,7 @@ document.addEventListener("click", ev => {
       inhalt.style.top = Math.round(top) + "px";
       inhalt.style.height = Math.round(h) + "px";
     };
-    // Erst eine Schätzung ums Bild (falls der Observer fehlt), dann exakt
-    const r = img.getBoundingClientRect();
+    const r = anker ? anker.getBoundingClientRect() : { top: 0, height: 0 };
     const hSchaetz = Math.min((window.screen && screen.availHeight) || 700, 900) * 0.85;
     setzen(r.top + window.scrollY + r.height / 2 - hSchaetz / 2, hSchaetz);
     if ("IntersectionObserver" in window) {
@@ -1196,12 +1195,29 @@ document.addEventListener("click", ev => {
       io.observe(box);
     }
   }
-  const zu = () => { box.remove(); document.removeEventListener("keydown", esc_); document.body.style.overflow = ""; };
-  const esc_ = k => { if (k.key === "Escape") zu(); };
-  box.addEventListener("click", zu);
-  document.addEventListener("keydown", esc_);
+  const zu = () => { box.remove(); document.removeEventListener("keydown", tasten); document.body.style.overflow = ""; };
+  const tasten = k => { if (k.key === "Escape") zu(); };
+  box.addEventListener("click", ev => {
+    // Bild: jeder Tipp schließt. Anleitung: nur Hintergrund oder ×, damit Knöpfe darin gehen.
+    if (opt.tippSchliesst || ev.target === box || ev.target === inhalt || ev.target.closest(".gg-lightbox-zu")) zu();
+  });
+  document.addEventListener("keydown", tasten);
   document.body.style.overflow = "hidden";
   document.body.appendChild(box);
+  return { box, inhalt, zu };
+}
+// Bild groß ansehen. Schließen: Tipp irgendwohin, × oder Esc.
+document.addEventListener("click", ev => {
+  const img = ev.target.closest(".gg-img");
+  if (!img || !img.src || img.closest(".gg-lightbox")) return;
+  ev.preventDefault();
+  const karte = img.closest(".gg-card");
+  const ids = karte ? (karte.dataset.eid || "").split(" ") : [];   // bei Vorstellungen mehrere IDs
+  const e = allEvents.find(x => ids.indexOf(x.id) >= 0) || null;
+  const credit = img.closest("figure") && img.closest("figure").querySelector(".gg-credit");
+  ebeneOeffnen("", '<img src="' + esc(img.src) + '" alt="' + esc(e ? e.titel : "") + '">' +
+    '<figcaption>' + [e ? esc(e.titel) : "", credit ? esc(credit.textContent) : ""].filter(Boolean).join(" · ") + '</figcaption>',
+    img, { tippSchliesst: true });
   zaehle("bild", e ? e.titel : "");
 });
 const KAL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M12 13v5M9.5 15.5h5"/></svg>';
@@ -1751,9 +1767,7 @@ function untenNavZeichnen() {
     html += '<button type="button" class="gg-tab" data-gehe="' + nach + '">' + esc(tagLabel(nach)) + ' ›</button>';
   }
   html += '<button type="button" class="gg-oben" data-oben>Nach oben ↑</button>';
-  if (appHinweisSinnvoll()) html += '<div class="gg-unten-app">' + (imIframe
-    ? '<a href="' + APP_URL + '" target="' + APP_ZIEL + '" rel="noopener" data-z="app_hinweis" style="color:var(--gg-muted);font-size:13.5px">📲 Kalender als App aufs Handy</a>'
-    : '<button type="button" data-app>📲 Kalender als App aufs Handy</button>') + '</div>';
+  if (appHinweisSinnvoll()) html += '<div class="gg-unten-app"><button type="button" data-app>📲 Kalender als App aufs Handy</button></div>';
   box.innerHTML = html;
 }
 function tagZeigen(k) {
@@ -1785,7 +1799,8 @@ document.getElementById("untenNav").addEventListener("click", ev => {
   const g = ev.target.closest("[data-gehe]");
   if (g) { zaehle("tagnav"); tagZeigen(g.dataset.gehe); return; }
   if (ev.target.closest("[data-oben]")) { nachOben(); return; }
-  if (ev.target.closest("[data-app]")) appHinweisZeigen();
+  const appKnopf = ev.target.closest("[data-app]");
+  if (appKnopf) appHinweisZeigen(appKnopf);
 });
 // Nach jedem Neuzeichnen die Navigation unten aktualisieren
 const renderOhneUnten = render;
@@ -1824,46 +1839,46 @@ function appHinweisSinnvoll() { return istHandy && !istApp; }
   leiste.hidden = false;
   zaehle("app_leiste");
   const knopf = leiste.querySelector("[data-app-leiste]");
-  if (imIframe) {
-    // Im iframe auf ganzgraz.at blockt der Handy-Browser window.open() oft still.
-    // Ein echter Link mit target=_blank geht immer – also den Knopf durch einen ersetzen.
-    const a = document.createElement("a");
-    a.className = knopf.className; a.innerHTML = knopf.innerHTML;
-    a.href = APP_URL; a.target = APP_ZIEL; a.rel = "noopener";
-    a.style.textDecoration = "none";
-    a.addEventListener("click", () => zaehle("app_leiste_klick"));
-    knopf.replaceWith(a);
-  } else {
-    knopf.addEventListener("click", () => { zaehle("app_leiste_klick"); appHinweisZeigen(); });
-  }
+  knopf.addEventListener("click", () => { zaehle("app_leiste_klick"); appHinweisZeigen(knopf); });
   leiste.querySelector("[data-app-leiste-zu]").addEventListener("click", () => {
     leiste.hidden = true;
     try { localStorage.setItem("ggAppLeisteZu", String(Date.now() + 30 * 86400000)); } catch (err) {}
   });
 })();
-function appHinweisZeigen() {
+function appHinweisZeigen(anker) {
   zaehle("app_hinweis");
+  const LINK_KURZ = "ganzgraz.github.io/kalender";
+  const teilen = 'unten auf <strong>Teilen</strong> tippen (Quadrat mit Pfeil nach oben – bei neueren iPhones zuerst auf <strong>•••</strong>), dann <strong>„Zum Home-Bildschirm“</strong>.';
+  let schritte, knoepfe = "";
   if (imIframe) {
-    if (IST_IOS) { try { window.top.location.href = APP_URL; } catch (err) { location.href = APP_URL; } }
-    else window.open(APP_URL, "_blank", "noopener");
-    return;
+    // Auf ganzgraz.at: Speichern ginge nur für die ganze ganzgraz.at-Seite. Darum erst den
+    // Kalender direkt öffnen – dort sind Symbol, Name und Vollbild hinterlegt.
+    schritte = IST_IOS
+      ? '<li>Tipp auf <strong>„Kalender öffnen“</strong>.</li><li>Dort ' + teilen + '</li>'
+      : '<li>Tipp auf <strong>„Kalender öffnen“</strong>.</li><li>Dort auf <strong>„Installieren“</strong> tippen – oder im Menü ⋮ <strong>„Zum Startbildschirm hinzufügen“</strong>.</li>';
+    knoepfe = '<a class="gg-app-knopf" href="' + APP_URL + '" target="' + APP_ZIEL + '" rel="noopener">Kalender öffnen</a>' +
+      '<button type="button" class="gg-app-knopf zweit" data-kopieren>Link kopieren</button>';
+  } else {
+    schritte = IST_IOS
+      ? '<li>In Safari ' + teilen + '</li><li>Fertig – der Kalender ist jetzt als App mit dem ganzgraz-Symbol am Home-Bildschirm.</li>'
+      : '<li>Im Browser-Menü ⋮ oben rechts <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> wählen.</li>';
+    if (installPrompt) knoepfe = '<button type="button" class="gg-app-knopf" data-installieren>Jetzt installieren</button>';
   }
-  const box = document.getElementById("appHinweis");
-  const ios = IST_IOS;
-  box.innerHTML = '<strong>Den Kalender wie eine App am Handy haben:</strong><br>' +
-    (ios
-      ? 'In Safari auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach oben – bei neuen iPhones zuerst unten rechts auf <strong>•••</strong>) tippen, dann <strong>„Zum Home-Bildschirm“</strong> wählen.'
-      : 'Im Browser-Menü (⋮ oben rechts) <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> wählen.') +
-    (installPrompt ? '<br><button type="button" class="gg-app-install">Jetzt installieren</button>' : '');
-  box.hidden = false;
-  const b = box.querySelector(".gg-app-install");
-  if (b) b.addEventListener("click", async () => {
+  const ebene = ebeneOeffnen("gg-app-ebene",
+    '<div class="gg-app-karte"><h3>📲 Den Kalender als App am Handy</h3><ol>' + schritte + '</ol>' + knoepfe + '</div>', anker);
+  const k = ebene.box.querySelector("[data-kopieren]");
+  if (k) k.addEventListener("click", async () => {
+    const url = "https://" + LINK_KURZ + "/";
+    try { await navigator.clipboard.writeText(url); k.textContent = "Kopiert – in Safari einfügen"; }
+    catch (err) { k.textContent = url; }
+  });
+  const ins = ebene.box.querySelector("[data-installieren]");
+  if (ins) ins.addEventListener("click", async () => {
     installPrompt.prompt();
     const r = await installPrompt.userChoice.catch(() => null);
-    if (r && r.outcome === "accepted") { zaehle("app_installiert"); box.hidden = true; }
+    if (r && r.outcome === "accepted") { zaehle("app_installiert"); ebene.zu(); }
     installPrompt = null;
   });
-  box.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 // Direkt geöffnet (als App oder über den Hinweis): eigener Kopf mit Logo, weil ganzgraz.at drumherum fehlt
 if (!imIframe) {
