@@ -49,11 +49,13 @@
     </details>
     <label><input type="checkbox" id="marker" checked style="width:auto;margin-right:6px">Markierung mit Beschriftung setzen</label>
     <label><input type="checkbox" id="gebaeude" checked style="width:auto;margin-right:6px">Gebäude einzeichnen</label>
+    <label><input type="checkbox" id="namen" checked style="width:auto;margin-right:6px">Straßennamen einzeichnen</label>
     <button class="primary" id="go">Karte erzeugen</button>
     <button class="secondary" id="dl" disabled>PNG herunterladen</button>
     <div id="status"></div>
     <details><summary>Hinweise</summary>
       <p>Die Karte wird im Browser aus vorbereiteten OpenStreetMap-Kacheln von Graz gezeichnet (Stand November 2026) und ist in wenigen Sekunden fertig. Nur wenn eine Kachel fehlt, wird live bei Overpass nachgeladen (20–60 s, bei „504“ nochmal klicken). Im Newsletter: volle Breite (Querformat), Bildunterschrift steht schon auf der Karte – zusätzlich als 12-px-Zeile darunter: <b>Grafik: ganzgraz · Kartendaten: © OpenStreetMap-Mitwirkende</b>.</p>
+      <p><b>Marker korrigieren:</b> Sitzt ein Marker nicht genau, auf der fertigen Karte mit der Maus an die richtige Stelle ziehen. Doppelklick auf eine freie Stelle setzt einen zusätzlichen Marker (auch wenn die Suche einen Ort gar nicht kennt). Straßennamen werden automatisch gesetzt – Hauptstraßen zuerst, bei weitem Ausschnitt nur diese – und lassen sich per Häkchen abschalten.</p>
       <p><b>Mehr Aussage auf der Karte:</b> Unter „Mehr“ lassen sich weitere Orte als nummerierte Marker setzen (z. B. alle Standorte einer Serie), eine Strecke orange hervorheben (ganze Straßen per Namen, oder „von A bis B“ – die Karte sucht den Weg über das Grazer Straßennetz, z. B. für Demo-Routen, Umleitungen, Baustellen) und eine Fläche einfärben (Bezirk, Park, Platz, Friedhof – Bezirksgrenzen sind aus OpenStreetMap). Der Ausschnitt passt sich automatisch an, damit alles im Bild ist.</p>
       <p>Findet die Suche einen Ort nicht: Straße + Hausnummer probieren oder den Namen so schreiben, wie er auf Straßenschildern steht (z. B. „Kaiser-Josef-Platz“). Keine Karten bei Unfallopfern oder Privatadressen.</p>
     </details>
@@ -291,14 +293,43 @@ function draw(els,b,opt){
   const belegt=marks.map(m=>{const [x,y]=P(m.lon,m.lat);return [x-22,y-22,44,44];}); // Marker-Kreise, dazu kommen die Pillen
   if(opt.titel){g.font=`700 ${opt.story?30:22}px "League Spartan"`;belegt.push([20,20,g.measureText(opt.titel).width+72,70]);}
   const kollidiert=(x,y,w,h)=>x<6||y<6||x+w>W-6||y+h>H-62||belegt.some(b=>x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1]);
+  // 1. Durchgang: Platz für die Beschriftungs-Pillen festlegen (damit Straßennamen ihnen ausweichen können)
+  const pillen=[];
+  for(let i=0;i<marks.length;i++){const m=marks[i];if(!m.label){pillen.push(null);continue;}const [mx,my]=P(m.lon,m.lat);
+    g.font="16px Montserrat";const tw=g.measureText(m.label).width+30;
+    // Kandidaten: rechts oben, links oben, rechts unten, links unten, drüber, drunter – erster ohne Überlappung
+    const kand=[[mx+22,my-44],[mx-22-tw,my-44],[mx+22,my+10],[mx-22-tw,my+10],[mx-tw/2,my-62],[mx-tw/2,my+26]];
+    const pos=kand.find(c=>!kollidiert(c[0],c[1],tw,36))||kand[0];belegt.push([pos[0],pos[1],tw,36]);pillen.push([pos[0],pos[1],tw]);}
+  // Straßennamen: Hauptstraßen zuerst, dann nach sichtbarer Länge; weichen Markern, Pillen, Titel und einander aus
+  if(opt.namen){
+    const fs=opt.story?14:12;g.font=`700 ${fs}px Montserrat`;const cand=[];
+    for(const k in opt.namen){const st=opt.namen[k];if(opt.nurHaupt&&!st.c)continue;let len=0;const stuecke=[];
+      for(const w of st.w){let prev=null,wl=0;const pp=[];
+        for(let i=0;i<w.length;i+=2){const lon=w[i]/1e5,lat=w[i+1]/1e5;if(lon<b.w||lon>b.e||lat<b.s||lat>b.n){prev=null;continue;}const q=P(lon,lat);if(prev)wl+=Math.hypot(q[0]-prev[0],q[1]-prev[1]);pp.push(q);prev=q;}
+        len+=wl;if(pp.length>=2&&wl>12)stuecke.push({l:wl,pp:pp});}
+      if(!stuecke.length)continue;const tw=g.measureText(st.n).width;if(len<tw*1.2)continue;
+      stuecke.sort((x,y)=>y.l-x.l);cand.push({n:st.n,c:st.c?1:0,len:len,tw:tw,st:stuecke.slice(0,4)});}
+    cand.sort((x,y)=>(y.c-x.c)||(y.len-x.len));
+    let n=0;const max=opt.story?20:14;g.textAlign="center";g.textBaseline="middle";g.lineJoin="round";
+    for(const cnd of cand){if(n>=max)break;
+      for(const stk of cnd.st){const pp=stk.pp;let half=stk.l/2,i=1,acc=0;
+        for(;i<pp.length;i++){const d=Math.hypot(pp[i][0]-pp[i-1][0],pp[i][1]-pp[i-1][1]);if(acc+d>=half)break;acc+=d;}
+        i=Math.min(i,pp.length-1);const t=(half-acc)/(Math.hypot(pp[i][0]-pp[i-1][0],pp[i][1]-pp[i-1][1])||1);
+        const cx=pp[i-1][0]+(pp[i][0]-pp[i-1][0])*t,cy=pp[i-1][1]+(pp[i][1]-pp[i-1][1])*t;
+        let ang=Math.atan2(pp[pp.length-1][1]-pp[0][1],pp[pp.length-1][0]-pp[0][0]);if(ang>Math.PI/2)ang-=Math.PI;if(ang<-Math.PI/2)ang+=Math.PI;
+        const bw=Math.abs(cnd.tw*Math.cos(ang))+Math.abs(fs*Math.sin(ang))+10,bh=Math.abs(cnd.tw*Math.sin(ang))+Math.abs(fs*Math.cos(ang))+10;
+        if(kollidiert(cx-bw/2,cy-bh/2,bw,bh))continue;
+        belegt.push([cx-bw/2,cy-bh/2,bw,bh]);
+        g.save();g.translate(cx,cy);g.rotate(ang);g.lineWidth=4;g.strokeStyle="rgba(255,255,255,0.92)";g.strokeText(cnd.n,0,0);g.fillStyle="#3a2470";g.fillText(cnd.n,0,0);g.restore();
+        n++;break;}}
+    g.textAlign="left";
+  }
+  // 2. Durchgang: Marker und Pillen zeichnen
   for(let i=0;i<marks.length;i++){const m=marks[i];const [mx,my]=P(m.lon,m.lat);
     g.beginPath();g.arc(mx,my,19,0,7);g.fillStyle=CI.orange;g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
     if(viele){g.font='700 19px "League Spartan"';g.fillStyle="#000";g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),mx,my+2);g.textAlign="left";}
     else{g.beginPath();g.arc(mx,my,6,0,7);g.fillStyle="#000";g.fill();}
-    if(m.label){g.font="16px Montserrat";const tw=g.measureText(m.label).width+30;
-      // Kandidaten: rechts oben, links oben, rechts unten, links unten, drüber, drunter – erster ohne Überlappung
-      const kand=[[mx+22,my-44],[mx-22-tw,my-44],[mx+22,my+10],[mx-22-tw,my+10],[mx-tw/2,my-62],[mx-tw/2,my+26]];
-      let pos=kand.find(c=>!kollidiert(c[0],c[1],tw,36))||kand[0];const x=pos[0],y=pos[1];belegt.push([x,y,tw,36]);
+    if(pillen[i]){const [x,y,tw]=pillen[i];g.font="16px Montserrat";
       rr(g,x,y,tw,36,16);g.fillStyle="#fff";g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
       g.fillStyle="#000";g.textBaseline="middle";g.fillText(m.label,x+15,y+18);}
   }
@@ -338,13 +369,25 @@ $("go").onclick=async()=>{
     status("Lade Kartendaten …");let els=await fetchAreaLocal(b,geb);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,geb);}
     status("Zeichne …");
     const titel=$("titel").value.trim()||(marks[0]?marks[0].name:strecke?strecke.name:flaechen.length?flaechen[0].name:"");
-    draw(els,b,{marks:$("marker").checked?marks:[],strecke:strecke,flaechen:flaechen,titel:titel,story});
+    let namenS=null;if($("namen").checked){try{namenS=(await extraDatei('strassen'))||null;}catch(e){}}
+    LAST={els:els,b:b,opt:{marks:$("marker").checked?marks:[],strecke:strecke,flaechen:flaechen,titel:titel,story,namen:namenS,nurHaupt:r>1300}};
+    draw(LAST.els,LAST.b,LAST.opt);
     $("out").style.display="block";$("dl").disabled=false;
     $("meta").textContent=`${els.length} Kartenelemente · ${Math.round((Date.now()-t0)/1000)} s · Ausschnitt ±${Math.round(r)} m${$("gebaeude").checked&&!geb?" (Gebäude bei so weitem Ausschnitt weggelassen)":""} · Quelle: ${quelle} · Gefunden: ${gefunden.join(" · ")}`;
     status(marks.length>1?"Fertig. Prüf bitte, ob alle Marker richtig sitzen (Reihenfolge = Eingabe).":"Fertig. Prüf bitte, ob die Markierung am richtigen Ort sitzt.");
   }catch(e){status("Fehler: "+e.message);}
   $("go").disabled=false;
 };
+// ----- Marker mit der Maus verschieben / per Doppelklick neu setzen -----
+let LAST=null,dragI=-1,raf=0;const cv=$("c");
+function cvPos(ev){const r=cv.getBoundingClientRect();return [(ev.clientX-r.left)*cv.width/r.width,(ev.clientY-r.top)*cv.height/r.height];}
+function toGeo(x,y){const b=LAST.b;return {lon:b.w+x/cv.width*(b.e-b.w),lat:b.s+(cv.height-y)/cv.height*(b.n-b.s)};}
+function markAt(x,y){const b=LAST.b,ms=LAST.opt.marks||[];for(let i=ms.length-1;i>=0;i--){const mx=(ms[i].lon-b.w)/(b.e-b.w)*cv.width,my=cv.height-(ms[i].lat-b.s)/(b.n-b.s)*cv.height;if(Math.hypot(mx-x,my-y)<26)return i;}return -1;}
+function neuZeichnen(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw(LAST.els,LAST.b,LAST.opt);});}
+cv.addEventListener("pointerdown",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);dragI=markAt(x,y);if(dragI>=0){try{cv.setPointerCapture(ev.pointerId);}catch(e){}ev.preventDefault();}});
+cv.addEventListener("pointermove",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);if(dragI<0){cv.style.cursor=markAt(x,y)>=0?"grab":"default";return;}Object.assign(LAST.opt.marks[dragI],toGeo(x,y));neuZeichnen();});
+cv.addEventListener("pointerup",ev=>{if(dragI<0)return;const m=LAST.opt.marks[dragI];status("Marker "+(dragI+1)+" verschoben auf "+m.lat.toFixed(5)+", "+m.lon.toFixed(5)+" (gilt für dieses Bild; „Karte erzeugen“ setzt ihn wieder auf den gesuchten Ort).");dragI=-1;});
+cv.addEventListener("dblclick",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);if(markAt(x,y)>=0)return;const label=prompt("Neuer Marker an dieser Stelle – Beschriftung (leer = ohne):","");if(label===null)return;const p=toGeo(x,y);(LAST.opt.marks=LAST.opt.marks||[]).push({lat:p.lat,lon:p.lon,name:label,label:label.trim()});neuZeichnen();status("Marker "+LAST.opt.marks.length+" gesetzt.");});
 $("dl").onclick=()=>{const a=document.createElement("a");const name=($("titel").value||$("ort").value||"karte").replace(/[^\wäöüÄÖÜß-]+/g,"_");a.download=`ganzgraz-karte_${name}${$("format").value==="story"?"_story":""}.png`;a.href=$("c").toDataURL("image/png");a.click();};
 </script>
 </body>
