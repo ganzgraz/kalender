@@ -433,8 +433,15 @@
      öffnet das ganze Bild – Plakate und Grafiken sind sonst nicht lesbar. */
   .gg-lightbox {
     position: fixed; inset: 0; z-index: 9999; background: rgba(20, 10, 40, .92);
+    cursor: zoom-out; animation: ggFade .15s ease-out; margin: 0;
+  }
+  /* Der eigentliche Inhalt. Direkt geöffnet füllt er den Bildschirm. Im iframe auf
+     ganzgraz.at ist der Rahmen so hoch wie der ganze Kalender – dort wird der Kasten
+     per JS rund um das angetippte Bild gesetzt, sonst landet er außerhalb des Sichtfelds. */
+  .gg-lb-inhalt {
+    position: absolute; left: 0; right: 0; top: 0; height: 100%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 16px; cursor: zoom-out; animation: ggFade .15s ease-out;
+    padding: 16px; box-sizing: border-box;
   }
   @keyframes ggFade { from { opacity: 0 } to { opacity: 1 } }
   .gg-lightbox img {
@@ -1158,9 +1165,24 @@ document.addEventListener("click", ev => {
   const box = document.createElement("figure");
   box.className = "gg-lightbox";
   box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Bild in groß");
-  box.innerHTML = '<button type="button" class="gg-lightbox-zu" aria-label="Schließen">×</button>' +
+  box.innerHTML = '<div class="gg-lb-inhalt">' +
+    '<button type="button" class="gg-lightbox-zu" aria-label="Schließen">×</button>' +
     '<img src="' + esc(img.src) + '" alt="' + esc(e ? e.titel : "") + '">' +
-    '<figcaption>' + [e ? esc(e.titel) : "", credit ? esc(credit.textContent) : ""].filter(Boolean).join(" · ") + '</figcaption>';
+    '<figcaption>' + [e ? esc(e.titel) : "", credit ? esc(credit.textContent) : ""].filter(Boolean).join(" · ") + '</figcaption>' +
+    '</div>';
+  if (window.parent !== window) {
+    // Im iframe: sichtbare Höhe schätzen (Bildschirmhöhe) und den Kasten ums Bild zentrieren
+    const inhalt = box.querySelector(".gg-lb-inhalt");
+    const h = Math.round(Math.min((window.screen && screen.availHeight) || 700, 900) * 0.85);
+    const r = img.getBoundingClientRect();
+    const docH = document.documentElement.scrollHeight;
+    let top = r.top + window.scrollY + r.height / 2 - h / 2;
+    top = Math.max(0, Math.min(top, docH - h));
+    inhalt.style.top = Math.round(top) + "px";
+    inhalt.style.height = h + "px";
+    box.style.position = "absolute";
+    box.style.height = docH + "px";
+  }
   const zu = () => { box.remove(); document.removeEventListener("keydown", esc_); document.body.style.overflow = ""; };
   const esc_ = k => { if (k.key === "Escape") zu(); };
   box.addEventListener("click", zu);
