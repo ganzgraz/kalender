@@ -1171,17 +1171,30 @@ document.addEventListener("click", ev => {
     '<figcaption>' + [e ? esc(e.titel) : "", credit ? esc(credit.textContent) : ""].filter(Boolean).join(" · ") + '</figcaption>' +
     '</div>';
   if (window.parent !== window) {
-    // Im iframe: sichtbare Höhe schätzen (Bildschirmhöhe) und den Kasten ums Bild zentrieren
+    // Im iframe ist der Rahmen so hoch wie der ganze Kalender. Welcher Teil gerade am
+    // Bildschirm zu sehen ist, verrät der IntersectionObserver (der schneidet auch im
+    // fremden iframe mit dem echten Sichtfenster zu). Dorthin kommt der Inhalt.
     const inhalt = box.querySelector(".gg-lb-inhalt");
-    const h = Math.round(Math.min((window.screen && screen.availHeight) || 700, 900) * 0.85);
-    const r = img.getBoundingClientRect();
     const docH = document.documentElement.scrollHeight;
-    let top = r.top + window.scrollY + r.height / 2 - h / 2;
-    top = Math.max(0, Math.min(top, docH - h));
-    inhalt.style.top = Math.round(top) + "px";
-    inhalt.style.height = h + "px";
     box.style.position = "absolute";
     box.style.height = docH + "px";
+    const setzen = (top, h) => {
+      top = Math.max(0, Math.min(top, docH - h));
+      inhalt.style.top = Math.round(top) + "px";
+      inhalt.style.height = Math.round(h) + "px";
+    };
+    // Erst eine Schätzung ums Bild (falls der Observer fehlt), dann exakt
+    const r = img.getBoundingClientRect();
+    const hSchaetz = Math.min((window.screen && screen.availHeight) || 700, 900) * 0.85;
+    setzen(r.top + window.scrollY + r.height / 2 - hSchaetz / 2, hSchaetz);
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(eintraege => {
+        io.disconnect();
+        const sicht = eintraege[0] && eintraege[0].intersectionRect;
+        if (sicht && sicht.height > 150) setzen(sicht.top + window.scrollY, sicht.height);
+      });
+      io.observe(box);
+    }
   }
   const zu = () => { box.remove(); document.removeEventListener("keydown", esc_); document.body.style.overflow = ""; };
   const esc_ = k => { if (k.key === "Escape") zu(); };
