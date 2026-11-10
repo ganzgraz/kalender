@@ -267,7 +267,7 @@ if(/[?&]build=1/.test(location.search)){
 }
 function draw(els,b,opt){
   const W=opt.story?1080:1152,H=opt.story?1920:768;const c=$("c");c.width=W;c.height=H;const g=c.getContext("2d");
-  const k=Math.cos((b.s+b.n)/2*Math.PI/180);
+  const k=Math.cos((b.s+b.n)/2*Math.PI/180);const K=opt.story?1.6:1;
   const P=(lon,lat)=>[(lon-b.w)/(b.e-b.w)*W, H-(lat-b.s)/(b.n-b.s)*H];
   g.fillStyle=CI.bg;g.fillRect(0,0,W,H);
   const poly=(el,fill)=>{const pts=el.geometry;if(!pts||pts.length<3)return;g.beginPath();pts.forEach((p,i)=>{const [x,y]=P(p.lon,p.lat);i?g.lineTo(x,y):g.moveTo(x,y)});g.closePath();g.fillStyle=fill;g.fill();};
@@ -283,26 +283,26 @@ function draw(els,b,opt){
   for(const el of els){const t=el.tags||{};if(t.highway)line(el,CI.strasse,big(t)?6.5:3.5);}
   for(const el of els){const t=el.tags||{};if(t.railway==="tram")line(el,CI.lila,1.4,[5,4]);if(t.railway==="rail")line(el,"#6b5a8e",1.2,[8,4]);}
   // Flächenrand
-  if(opt.flaechen)for(const f of opt.flaechen){for(const ring of f.polys){path(ring);g.closePath();g.strokeStyle=CI.orange;g.lineWidth=4;g.lineJoin="round";g.stroke();}}
+  if(opt.flaechen)for(const f of opt.flaechen){for(const ring of f.polys){path(ring);g.closePath();g.strokeStyle=CI.orange;g.lineWidth=4*K;g.lineJoin="round";g.stroke();}}
   // Strecke
   if(opt.strecke){g.lineCap="round";g.lineJoin="round";
-    for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11;g.stroke();}   // erst alle Ränder …
-    for(const pts of opt.strecke.lines){path(pts);g.strokeStyle=CI.orange;g.lineWidth=8;g.stroke();}} // … dann alle Füllungen, sonst Nähte
+    for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11*K;g.stroke();}   // erst alle Ränder …
+    for(const pts of opt.strecke.lines){path(pts);g.strokeStyle=CI.orange;g.lineWidth=8*K;g.stroke();}} // … dann alle Füllungen, sonst Nähte
   // Marker (bei mehreren nummeriert)
-  const marks=opt.marks||[];const viele=marks.length>1;
-  const belegt=marks.map(m=>{const [x,y]=P(m.lon,m.lat);return [x-22,y-22,44,44];}); // Marker-Kreise, dazu kommen die Pillen
+  const marks=opt.marks||[];const viele=marks.length>1;const R=19*K,PH=36*K; // im Story-Format alles größer (K)
+  const belegt=marks.map(m=>{const [x,y]=P(m.lon,m.lat);return [x-R-3,y-R-3,2*R+6,2*R+6];}); // Marker-Kreise, dazu kommen die Pillen
   if(opt.titel){g.font=`700 ${opt.story?30:22}px "League Spartan"`;belegt.push([20,20,g.measureText(opt.titel).width+72,70]);}
   const kollidiert=(x,y,w,h)=>x<6||y<6||x+w>W-6||y+h>H-62||belegt.some(b=>x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1]);
   // 1. Durchgang: Platz für die Beschriftungs-Pillen festlegen (damit Straßennamen ihnen ausweichen können)
   const pillen=[];
   for(let i=0;i<marks.length;i++){const m=marks[i];if(!m.label){pillen.push(null);continue;}const [mx,my]=P(m.lon,m.lat);
-    g.font="16px Montserrat";const tw=g.measureText(m.label).width+30;
+    g.font=`${16*K}px Montserrat`;const tw=g.measureText(m.label).width+30*K;
     // Kandidaten: rechts oben, links oben, rechts unten, links unten, drüber, drunter – erster ohne Überlappung
-    const kand=[[mx+22,my-44],[mx-22-tw,my-44],[mx+22,my+10],[mx-22-tw,my+10],[mx-tw/2,my-62],[mx-tw/2,my+26]];
-    const pos=kand.find(c=>!kollidiert(c[0],c[1],tw,36))||kand[0];belegt.push([pos[0],pos[1],tw,36]);pillen.push([pos[0],pos[1],tw]);}
+    const kand=[[mx+R+3,my-R-PH*0.7],[mx-R-3-tw,my-R-PH*0.7],[mx+R+3,my+R*0.5],[mx-R-3-tw,my+R*0.5],[mx-tw/2,my-R-PH-7],[mx-tw/2,my+R+7]];
+    const pos=kand.find(c=>!kollidiert(c[0],c[1],tw,PH))||kand[0];belegt.push([pos[0],pos[1],tw,PH]);pillen.push([pos[0],pos[1],tw]);}
   // Straßennamen: Hauptstraßen zuerst, dann nach sichtbarer Länge; weichen Markern, Pillen, Titel und einander aus
   if(opt.namen){
-    const fs=opt.story?14:12;g.font=`700 ${fs}px Montserrat`;const cand=[];
+    const fs=Math.round(12*K);g.font=`700 ${fs}px Montserrat`;const cand=[];
     for(const k in opt.namen){const st=opt.namen[k];if(opt.nurHaupt&&!st.c)continue;let len=0;const stuecke=[];
       for(const w of st.w){let prev=null,wl=0;const pp=[];
         for(let i=0;i<w.length;i+=2){const lon=w[i]/1e5,lat=w[i+1]/1e5;if(lon<b.w||lon>b.e||lat<b.s||lat>b.n){prev=null;continue;}const q=P(lon,lat);if(prev)wl+=Math.hypot(q[0]-prev[0],q[1]-prev[1]);pp.push(q);prev=q;}
@@ -310,7 +310,7 @@ function draw(els,b,opt){
       if(!stuecke.length)continue;const tw=g.measureText(st.n).width;if(len<tw*1.2)continue;
       stuecke.sort((x,y)=>y.l-x.l);cand.push({n:st.n,c:st.c?1:0,len:len,tw:tw,st:stuecke.slice(0,4)});}
     cand.sort((x,y)=>(y.c-x.c)||(y.len-x.len));
-    let n=0;const max=opt.story?20:14;g.textAlign="center";g.textBaseline="middle";g.lineJoin="round";
+    let n=0;const max=opt.story?16:14;g.textAlign="center";g.textBaseline="middle";g.lineJoin="round";
     for(const cnd of cand){if(n>=max)break;
       for(const stk of cnd.st){const pp=stk.pp;let half=stk.l/2,i=1,acc=0;
         for(;i<pp.length;i++){const d=Math.hypot(pp[i][0]-pp[i-1][0],pp[i][1]-pp[i-1][1]);if(acc+d>=half)break;acc+=d;}
@@ -320,18 +320,18 @@ function draw(els,b,opt){
         const bw=Math.abs(cnd.tw*Math.cos(ang))+Math.abs(fs*Math.sin(ang))+10,bh=Math.abs(cnd.tw*Math.sin(ang))+Math.abs(fs*Math.cos(ang))+10;
         if(kollidiert(cx-bw/2,cy-bh/2,bw,bh))continue;
         belegt.push([cx-bw/2,cy-bh/2,bw,bh]);
-        g.save();g.translate(cx,cy);g.rotate(ang);g.lineWidth=4;g.strokeStyle="rgba(255,255,255,0.92)";g.strokeText(cnd.n,0,0);g.fillStyle="#3a2470";g.fillText(cnd.n,0,0);g.restore();
+        g.save();g.translate(cx,cy);g.rotate(ang);g.lineWidth=4*K;g.strokeStyle="rgba(255,255,255,0.92)";g.strokeText(cnd.n,0,0);g.fillStyle="#3a2470";g.fillText(cnd.n,0,0);g.restore();
         n++;break;}}
     g.textAlign="left";
   }
   // 2. Durchgang: Marker und Pillen zeichnen
   for(let i=0;i<marks.length;i++){const m=marks[i];const [mx,my]=P(m.lon,m.lat);
-    g.beginPath();g.arc(mx,my,19,0,7);g.fillStyle=CI.orange;g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
-    if(viele){g.font='700 19px "League Spartan"';g.fillStyle="#000";g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),mx,my+2);g.textAlign="left";}
-    else{g.beginPath();g.arc(mx,my,6,0,7);g.fillStyle="#000";g.fill();}
-    if(pillen[i]){const [x,y,tw]=pillen[i];g.font="16px Montserrat";
-      rr(g,x,y,tw,36,16);g.fillStyle="#fff";g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();
-      g.fillStyle="#000";g.textBaseline="middle";g.fillText(m.label,x+15,y+18);}
+    g.beginPath();g.arc(mx,my,R,0,7);g.fillStyle=CI.orange;g.fill();g.lineWidth=2*K;g.strokeStyle="#000";g.stroke();
+    if(viele){g.font=`700 ${19*K}px "League Spartan"`;g.fillStyle="#000";g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),mx,my+2*K);g.textAlign="left";}
+    else{g.beginPath();g.arc(mx,my,6*K,0,7);g.fillStyle="#000";g.fill();}
+    if(pillen[i]){const [x,y,tw]=pillen[i];g.font=`${16*K}px Montserrat`;
+      rr(g,x,y,tw,PH,PH/2-2);g.fillStyle="#fff";g.fill();g.lineWidth=2*K;g.strokeStyle="#000";g.stroke();
+      g.fillStyle="#000";g.textBaseline="middle";g.fillText(m.label,x+15*K,y+PH/2);}
   }
   // Titel-Pille
   if(opt.titel){const fs=opt.story?30:22;g.font=`700 ${fs}px "League Spartan"`;const tw=g.measureText(opt.titel).width+56;
@@ -382,7 +382,7 @@ $("go").onclick=async()=>{
 let LAST=null,dragI=-1,raf=0;const cv=$("c");
 function cvPos(ev){const r=cv.getBoundingClientRect();return [(ev.clientX-r.left)*cv.width/r.width,(ev.clientY-r.top)*cv.height/r.height];}
 function toGeo(x,y){const b=LAST.b;return {lon:b.w+x/cv.width*(b.e-b.w),lat:b.s+(cv.height-y)/cv.height*(b.n-b.s)};}
-function markAt(x,y){const b=LAST.b,ms=LAST.opt.marks||[];for(let i=ms.length-1;i>=0;i--){const mx=(ms[i].lon-b.w)/(b.e-b.w)*cv.width,my=cv.height-(ms[i].lat-b.s)/(b.n-b.s)*cv.height;if(Math.hypot(mx-x,my-y)<26)return i;}return -1;}
+function markAt(x,y){const b=LAST.b,ms=LAST.opt.marks||[];for(let i=ms.length-1;i>=0;i--){const mx=(ms[i].lon-b.w)/(b.e-b.w)*cv.width,my=cv.height-(ms[i].lat-b.s)/(b.n-b.s)*cv.height;if(Math.hypot(mx-x,my-y)<26*(LAST.opt.story?1.6:1))return i;}return -1;}
 function neuZeichnen(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw(LAST.els,LAST.b,LAST.opt);});}
 cv.addEventListener("pointerdown",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);dragI=markAt(x,y);if(dragI>=0){try{cv.setPointerCapture(ev.pointerId);}catch(e){}ev.preventDefault();}});
 cv.addEventListener("pointermove",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);if(dragI<0){cv.style.cursor=markAt(x,y)>=0?"grab":"default";return;}Object.assign(LAST.opt.marks[dragI],toGeo(x,y));neuZeichnen();});
