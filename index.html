@@ -458,6 +458,11 @@
     border: none; border-radius: 999px; padding: 11px 16px; font: inherit; font-weight: 700; text-decoration: none;
     cursor: pointer; margin-top: 8px; width: 100%; box-sizing: border-box; }
   .gg-app-karte .gg-app-knopf.zweit { background: #f1eaff; color: var(--gg-purple); }
+  .gg-app-karte li { margin-bottom: 12px; }
+  .gg-app-klein { font-size: 13px; color: #666; margin: 0 0 12px; }
+  li .gg-app-klein { display: inline-block; margin: 4px 0 0; }
+  .gg-sym { width: 20px; height: 20px; vertical-align: -4px; color: #007aff; background: #f0f0f3; border-radius: 6px; padding: 2px; }
+  .gg-sym-txt { display: inline-block; background: #f0f0f3; border-radius: 6px; padding: 0 6px; font-weight: 700; color: #333; }
   .gg-lightbox-zu {
     position: absolute; top: 10px; right: 12px; width: 40px; height: 40px; border: 0; border-radius: 50%;
     background: rgba(255,255,255,.15); color: #fff; font-size: 26px; line-height: 40px; cursor: pointer;
@@ -1848,24 +1853,35 @@ function appHinweisSinnvoll() { return istHandy && !istApp; }
 function appHinweisZeigen(anker) {
   zaehle("app_hinweis");
   const LINK_KURZ = "ganzgraz.github.io/kalender";
-  const teilen = 'unten auf <strong>Teilen</strong> tippen (Quadrat mit Pfeil nach oben – bei neueren iPhones zuerst auf <strong>•••</strong>), dann <strong>„Zum Home-Bildschirm“</strong>.';
-  let schritte, knoepfe = "";
+  // Kleine Symbole, damit man weiß, wonach man sucht
+  const SYM_TEILEN = '<svg class="gg-sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Teilen-Symbol"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+  const SYM_PUNKTE = '<span class="gg-sym-txt">•••</span>';
+  const SYM_MENUE = '<span class="gg-sym-txt">⋮</span>';
+  const iosSchritte =
+    '<li>Schließ dieses Fenster. Tippe dann in der <strong>Leiste von Safari</strong> (dort, wo die Adresse steht) auf ' + SYM_TEILEN + '.<br>' +
+      '<span class="gg-app-klein">Siehst du das nicht? Dann in dieser Leiste auf ' + SYM_PUNKTE + ' und dort auf <strong>„Teilen“</strong>. ' +
+      '<strong>Nicht</strong> die lila „Teilen“-Knöpfe bei den Events – die teilen nur ein Event.</span></li>' +
+    '<li>In der Liste, die aufgeht, <strong>nach unten wischen</strong> und <strong>„Zum Home-Bildschirm“</strong> antippen.</li>' +
+    '<li>Oben rechts auf <strong>„Hinzufügen“</strong>. Fertig – das ganzgraz-Symbol ist jetzt bei deinen Apps.</li>';
+  const androidSchritte =
+    '<li>Tippe <strong>oben rechts</strong> auf ' + SYM_MENUE + ' (drei Punkte).</li>' +
+    '<li><strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> antippen.</li>' +
+    '<li>Mit <strong>„Installieren“</strong> bestätigen. Fertig.</li>';
+  let schritte, knoepfe = "", vorab = "";
   if (imIframe) {
     // Auf ganzgraz.at: Speichern ginge nur für die ganze ganzgraz.at-Seite. Darum erst den
     // Kalender direkt öffnen – dort sind Symbol, Name und Vollbild hinterlegt.
-    schritte = IST_IOS
-      ? '<li>Tipp auf <strong>„Kalender öffnen“</strong>.</li><li>Dort ' + teilen + '</li>'
-      : '<li>Tipp auf <strong>„Kalender öffnen“</strong>.</li><li>Dort auf <strong>„Installieren“</strong> tippen – oder im Menü ⋮ <strong>„Zum Startbildschirm hinzufügen“</strong>.</li>';
+    vorab = '<p class="gg-app-klein">Dafür öffnest du den Kalender kurz auf seiner eigenen Seite. Dort erscheint dann die Anleitung.</p>';
+    schritte = "";
     knoepfe = '<a class="gg-app-knopf" href="' + APP_URL + '" target="' + APP_ZIEL + '" rel="noopener">Kalender öffnen</a>' +
-      '<button type="button" class="gg-app-knopf zweit" data-kopieren>Link kopieren</button>';
+      '<button type="button" class="gg-app-knopf zweit" data-kopieren>Geht nicht? Link kopieren</button>';
   } else {
-    schritte = IST_IOS
-      ? '<li>In Safari ' + teilen + '</li><li>Fertig – der Kalender ist jetzt als App mit dem ganzgraz-Symbol am Home-Bildschirm.</li>'
-      : '<li>Im Browser-Menü ⋮ oben rechts <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> wählen.</li>';
+    schritte = IST_IOS ? iosSchritte : androidSchritte;
     if (installPrompt) knoepfe = '<button type="button" class="gg-app-knopf" data-installieren>Jetzt installieren</button>';
   }
   const ebene = ebeneOeffnen("gg-app-ebene",
-    '<div class="gg-app-karte"><h3>📲 Den Kalender als App am Handy</h3><ol>' + schritte + '</ol>' + knoepfe + '</div>', anker);
+    '<div class="gg-app-karte"><h3>📲 Den Kalender als App am Handy</h3>' + vorab +
+    (schritte ? '<ol>' + schritte + '</ol>' : '') + knoepfe + '</div>', anker);
   const k = ebene.box.querySelector("[data-kopieren]");
   if (k) k.addEventListener("click", async () => {
     const url = "https://" + LINK_KURZ + "/";
