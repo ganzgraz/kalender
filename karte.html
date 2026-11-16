@@ -59,6 +59,7 @@
       <p><b>Marker korrigieren:</b> Sitzt ein Marker nicht genau, auf der fertigen Karte mit der Maus an die richtige Stelle ziehen. Doppelklick auf eine freie Stelle setzt einen zusätzlichen Marker (auch wenn die Suche einen Ort gar nicht kennt). Straßennamen werden automatisch gesetzt – Hauptstraßen zuerst, bei weitem Ausschnitt nur diese – und lassen sich per Häkchen abschalten.</p>
       <p><b>Mehr Aussage auf der Karte:</b> Unter „Mehr“ lassen sich weitere Orte als nummerierte Marker setzen (z. B. alle Standorte einer Serie), eine Strecke orange hervorheben (ganze Straßen per Namen, oder „von A bis B“ – die Karte sucht den Weg über das Grazer Straßennetz, z. B. für Demo-Routen, Umleitungen, Baustellen) und eine Fläche einfärben (Bezirk, Park, Platz, Friedhof – Bezirksgrenzen sind aus OpenStreetMap). Der Ausschnitt passt sich automatisch an, damit alles im Bild ist.</p>
       <p><b>Zoomen und verschieben:</b> Über der fertigen Karte stehen Knöpfe für ＋/－ Zoom und die vier Richtungen. Marker (auch verschobene und per Doppelklick gesetzte), Strecke und Fläche bleiben dabei erhalten. Gilt für Karte und Luftbild; beim Luftbild wird es unter ca. 100 m Ausschnitt unscharf.</p>
+      <p><b>Grenze einzeichnen:</b> „Grenze einzeichnen“ klicken, die Eckpunkte der Reihe nach auf der Karte anklicken, dann „Grenze fertig“. Es wird nur der Umriss gezeichnet (orange), das Innere bleibt sichtbar – z. B. für einen Schulhof im Luftbild. „Grenze löschen“ entfernt die letzte. „Karte erzeugen“ löscht alle eingezeichneten Grenzen, Zoomen und Verschieben nicht.</p>
       <p><b>Luftbild:</b> Bei „Kartenart“ auf „Luftbild (basemap.at)“ stellen → statt der gezeichneten Karte kommt das amtliche Orthofoto (Blick senkrecht von oben, kein 3D), z. B. um Grünflächen oder Bauplätze zu zeigen. Marker, Strecke, Fläche, Titel und Straßennamen funktionieren wie gewohnt; für Details „sehr eng“ oder „eng“ wählen. Frei nutzbar (CC BY 4.0), Bildnachweis: <b>Grafik: ganzgraz · Luftbild: basemap.at</b> (steht auch im Band; im Newsletter „basemap.at“ verlinken). Die Aufnahmen sind ein bis drei Jahre alt – neue Baustellen können fehlen.</p>
       <p>Findet die Suche einen Ort nicht: Straße + Hausnummer probieren oder den Namen so schreiben, wie er auf Straßenschildern steht (z. B. „Kaiser-Josef-Platz“). Keine Karten bei Unfallopfern oder Privatadressen.</p>
     </details>
@@ -72,6 +73,9 @@
       <button class="secondary" data-nav="p,1,0" title="nach rechts">→</button>
       <button class="secondary" data-nav="p,0,1" title="nach oben">↑</button>
       <button class="secondary" data-nav="p,0,-1" title="nach unten">↓</button>
+      <span style="width:14px"></span>
+      <button class="secondary" id="uStart" title="Eckpunkte anklicken, dann „Grenze fertig“">Grenze einzeichnen</button>
+      <button class="secondary" id="uWeg" title="letzte eingezeichnete Grenze entfernen">Grenze löschen</button>
     </div>
     <canvas id="c"></canvas><div class="hint" id="meta"></div></div>
 </main>
@@ -327,6 +331,10 @@ function draw(els,b,opt){
   // Flächenrand
   if(opt.flaechen)for(const f of opt.flaechen){for(const ring of f.polys){path(ring);g.closePath();g.strokeStyle=CI.orange;g.lineWidth=4*K;g.lineJoin="round";g.stroke();}}
   // Strecke
+  // selbst eingezeichnete Grenzen: nur Umriss (schwarz unterlegt, orange), keine Füllung
+  if(opt.umrisse)for(const u of opt.umrisse){if(u.pts.length<2)continue;g.lineCap="round";g.lineJoin="round";
+    for(const [col,lw] of [["#000",8*K],[CI.orange,5*K]]){path(u.pts);if(u.zu)g.closePath();g.strokeStyle=col;g.lineWidth=lw;g.stroke();}
+    if(!u.zu)for(const q of u.pts){const [x,y]=P(q[0],q[1]);g.beginPath();g.arc(x,y,6*K,0,7);g.fillStyle="#fff";g.fill();g.lineWidth=2;g.strokeStyle="#000";g.stroke();}}
   if(opt.strecke){g.lineCap="round";g.lineJoin="round";
     for(const pts of opt.strecke.lines){path(pts);g.strokeStyle="#000";g.lineWidth=11*K;g.stroke();}   // erst alle Ränder …
     for(const pts of opt.strecke.lines){path(pts);g.strokeStyle=CI.orange;g.lineWidth=8*K;g.stroke();}} // … dann alle Füllungen, sonst Nähte
@@ -445,10 +453,17 @@ function cvPos(ev){const r=cv.getBoundingClientRect();return [(ev.clientX-r.left
 function toGeo(x,y){const b=LAST.b;return {lon:b.w+x/cv.width*(b.e-b.w),lat:b.s+(cv.height-y)/cv.height*(b.n-b.s)};}
 function markAt(x,y){const b=LAST.b,ms=LAST.opt.marks||[];for(let i=ms.length-1;i>=0;i--){const mx=(ms[i].lon-b.w)/(b.e-b.w)*cv.width,my=cv.height-(ms[i].lat-b.s)/(b.n-b.s)*cv.height;if(Math.hypot(mx-x,my-y)<26*(LAST.opt.story?1.6:1))return i;}return -1;}
 function neuZeichnen(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw(LAST.els,LAST.b,LAST.opt);});}
-cv.addEventListener("pointerdown",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);dragI=markAt(x,y);if(dragI>=0){try{cv.setPointerCapture(ev.pointerId);}catch(e){}ev.preventDefault();}});
-cv.addEventListener("pointermove",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);if(dragI<0){cv.style.cursor=markAt(x,y)>=0?"grab":"default";return;}Object.assign(LAST.opt.marks[dragI],toGeo(x,y));neuZeichnen();});
+// Grenze selbst einzeichnen (nur Umriss)
+let uAkt=null;
+$("uStart").addEventListener("click",()=>{if(!LAST)return;
+  if(uAkt){if(uAkt.pts.length>=3){uAkt.zu=true;status("Grenze eingezeichnet.");}else{LAST.opt.umrisse.pop();status("Abgebrochen (mindestens 3 Punkte nötig).");}uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();return;}
+  uAkt={pts:[],zu:false};(LAST.opt.umrisse=LAST.opt.umrisse||[]).push(uAkt);$("uStart").textContent="Grenze fertig";cv.style.cursor="crosshair";status("Eckpunkte der Grenze der Reihe nach anklicken, dann „Grenze fertig“.");});
+$("uWeg").addEventListener("click",()=>{if(!LAST||!LAST.opt.umrisse||!LAST.opt.umrisse.length)return;LAST.opt.umrisse.pop();uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();status("Grenze entfernt.");});
+cv.addEventListener("click",ev=>{if(!LAST||!uAkt)return;const [x,y]=cvPos(ev);const q=toGeo(x,y);uAkt.pts.push([q.lon,q.lat]);neuZeichnen();});
+cv.addEventListener("pointerdown",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);dragI=markAt(x,y);if(dragI>=0){try{cv.setPointerCapture(ev.pointerId);}catch(e){}ev.preventDefault();}});
+cv.addEventListener("pointermove",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);if(dragI<0){cv.style.cursor=markAt(x,y)>=0?"grab":"default";return;}Object.assign(LAST.opt.marks[dragI],toGeo(x,y));neuZeichnen();});
 cv.addEventListener("pointerup",ev=>{if(dragI<0)return;const m=LAST.opt.marks[dragI];status("Marker "+(dragI+1)+" verschoben auf "+m.lat.toFixed(5)+", "+m.lon.toFixed(5)+" (gilt für dieses Bild; „Karte erzeugen“ setzt ihn wieder auf den gesuchten Ort).");dragI=-1;});
-cv.addEventListener("dblclick",ev=>{if(!LAST)return;const [x,y]=cvPos(ev);if(markAt(x,y)>=0)return;const label=prompt("Neuer Marker an dieser Stelle – Beschriftung (leer = ohne):","");if(label===null)return;const p=toGeo(x,y);(LAST.opt.marks=LAST.opt.marks||[]).push({lat:p.lat,lon:p.lon,name:label,label:label.trim()});neuZeichnen();status("Marker "+LAST.opt.marks.length+" gesetzt.");});
+cv.addEventListener("dblclick",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);if(markAt(x,y)>=0)return;const label=prompt("Neuer Marker an dieser Stelle – Beschriftung (leer = ohne):","");if(label===null)return;const p=toGeo(x,y);(LAST.opt.marks=LAST.opt.marks||[]).push({lat:p.lat,lon:p.lon,name:label,label:label.trim()});neuZeichnen();status("Marker "+LAST.opt.marks.length+" gesetzt.");});
 $("dl").onclick=()=>{const a=document.createElement("a");const name=($("titel").value||$("ort").value||"karte").replace(/[^\wäöüÄÖÜß-]+/g,"_");a.download=`ganzgraz-karte_${name}${$("format").value==="story"?"_story":""}.png`;a.href=$("c").toDataURL("image/png");a.click();};
 </script>
 </body>
