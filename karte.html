@@ -58,11 +58,22 @@
       <p>Die Karte wird im Browser aus vorbereiteten OpenStreetMap-Kacheln von Graz gezeichnet (Stand November 2026) und ist in wenigen Sekunden fertig. Nur wenn eine Kachel fehlt, wird live bei Overpass nachgeladen (20–60 s, bei „504“ nochmal klicken). Im Newsletter: volle Breite (Querformat), Bildunterschrift steht schon auf der Karte – zusätzlich als 12-px-Zeile darunter: <b>Grafik: ganzgraz · Kartendaten: © OpenStreetMap-Mitwirkende</b>.</p>
       <p><b>Marker korrigieren:</b> Sitzt ein Marker nicht genau, auf der fertigen Karte mit der Maus an die richtige Stelle ziehen. Doppelklick auf eine freie Stelle setzt einen zusätzlichen Marker (auch wenn die Suche einen Ort gar nicht kennt). Straßennamen werden automatisch gesetzt – Hauptstraßen zuerst, bei weitem Ausschnitt nur diese – und lassen sich per Häkchen abschalten.</p>
       <p><b>Mehr Aussage auf der Karte:</b> Unter „Mehr“ lassen sich weitere Orte als nummerierte Marker setzen (z. B. alle Standorte einer Serie), eine Strecke orange hervorheben (ganze Straßen per Namen, oder „von A bis B“ – die Karte sucht den Weg über das Grazer Straßennetz, z. B. für Demo-Routen, Umleitungen, Baustellen) und eine Fläche einfärben (Bezirk, Park, Platz, Friedhof – Bezirksgrenzen sind aus OpenStreetMap). Der Ausschnitt passt sich automatisch an, damit alles im Bild ist.</p>
+      <p><b>Zoomen und verschieben:</b> Über der fertigen Karte stehen Knöpfe für ＋/－ Zoom und die vier Richtungen. Marker (auch verschobene und per Doppelklick gesetzte), Strecke und Fläche bleiben dabei erhalten. Gilt für Karte und Luftbild; beim Luftbild wird es unter ca. 100 m Ausschnitt unscharf.</p>
       <p><b>Luftbild:</b> Bei „Kartenart“ auf „Luftbild (basemap.at)“ stellen → statt der gezeichneten Karte kommt das amtliche Orthofoto (Blick senkrecht von oben, kein 3D), z. B. um Grünflächen oder Bauplätze zu zeigen. Marker, Strecke, Fläche, Titel und Straßennamen funktionieren wie gewohnt; für Details „sehr eng“ oder „eng“ wählen. Frei nutzbar (CC BY 4.0), Bildnachweis: <b>Grafik: ganzgraz · Luftbild: basemap.at</b> (steht auch im Band; im Newsletter „basemap.at“ verlinken). Die Aufnahmen sind ein bis drei Jahre alt – neue Baustellen können fehlen.</p>
       <p>Findet die Suche einen Ort nicht: Straße + Hausnummer probieren oder den Namen so schreiben, wie er auf Straßenschildern steht (z. B. „Kaiser-Josef-Platz“). Keine Karten bei Unfallopfern oder Privatadressen.</p>
     </details>
   </div>
-  <div class="box" id="out" style="display:none"><canvas id="c"></canvas><div class="hint" id="meta"></div></div>
+  <div class="box" id="out" style="display:none">
+    <div id="nav" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <span class="hint" style="margin:0 6px 0 0">Ausschnitt anpassen:</span>
+      <button class="secondary" data-nav="z,0.7" title="näher ran">＋ Zoom</button>
+      <button class="secondary" data-nav="z,1.43" title="weiter weg">－ Zoom</button>
+      <button class="secondary" data-nav="p,-1,0" title="nach links">←</button>
+      <button class="secondary" data-nav="p,1,0" title="nach rechts">→</button>
+      <button class="secondary" data-nav="p,0,1" title="nach oben">↑</button>
+      <button class="secondary" data-nav="p,0,-1" title="nach unten">↓</button>
+    </div>
+    <canvas id="c"></canvas><div class="hint" id="meta"></div></div>
 </main>
 <script>
 const CI={lila:"#4e2996",helllila:"#d4b9ff",orange:"#ff8900",bg:"#f4f4f4",strasse:"#ffffff",rand:"#d4b9ff",wasser:"#d4b9ff",gruen:"#e6efdc",geb:"#e9e4f1"};
@@ -403,7 +414,7 @@ $("go").onclick=async()=>{
     status("Zeichne …");
     const titel=$("titel").value.trim()||(marks[0]?marks[0].name:strecke?strecke.name:flaechen.length?flaechen[0].name:"");
     let namenS=null;if($("namen").checked){try{namenS=(await extraDatei('strassen'))||null;}catch(e){}}
-    LAST={els:els,b:b,opt:{marks:$("marker").checked?marks:[],strecke:strecke,flaechen:flaechen,titel:titel,story,namen:namenS,nurHaupt:r>1300,luft:luft}};
+    LAST={els:els,b:b,opt:{marks:$("marker").checked?marks:[],strecke:strecke,flaechen:flaechen,titel:titel,story,namen:namenS,nurHaupt:r>1300,luft:luft},view:{lat:lat,lon:lon,r:r,aspect:aspect,quelle:quelle,gefunden:gefunden}};
     draw(LAST.els,LAST.b,LAST.opt);
     $("out").style.display="block";$("dl").disabled=false;
     $("meta").textContent=`${luft?luft.length+" Luftbild-Kacheln":els.length+" Kartenelemente"} · ${Math.round((Date.now()-t0)/1000)} s · Ausschnitt ±${Math.round(r)} m${!luft&&$("gebaeude").checked&&!geb?" (Gebäude bei so weitem Ausschnitt weggelassen)":""} · Quelle: ${quelle} · Gefunden: ${gefunden.join(" · ")}`;
@@ -413,6 +424,23 @@ $("go").onclick=async()=>{
 };
 // ----- Marker mit der Maus verschieben / per Doppelklick neu setzen -----
 let LAST=null,dragI=-1,raf=0;const cv=$("c");
+// Ausschnitt nachträglich ändern (Zoom/Verschieben): Marker, Strecke, Fläche bleiben, nur der Hintergrund wird neu geladen
+let navBusy=false;
+async function ansicht(art,a,b2){
+  if(!LAST||!LAST.view||navBusy)return;navBusy=true;const v=LAST.view,o=LAST.opt;const alt={lat:v.lat,lon:v.lon,r:v.r};
+  try{
+    if(art==="z"){v.r=Math.max(60,Math.min(4000,v.r*a));}
+    else{const k=Math.cos(v.lat*Math.PI/180);v.lon+=a*0.35*v.r*v.aspect/(111320*k);v.lat+=b2*0.35*v.r/111320;}
+    const b=bbox(v.lat,v.lon,v.r,v.aspect);const geb=$("gebaeude").checked&&v.r<=1300;let els=[],luft=null,quelle=v.quelle;
+    if(o.luft){status("Lade Luftbild …");luft=await luftKacheln(b,o.story?1080:1152);quelle="basemap.at (Zoom "+luft.z+")";}
+    else{status("Lade Kartendaten …");els=await fetchAreaLocal(b,geb);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,geb);}}
+    LAST.els=els;LAST.b=b;o.luft=luft;o.nurHaupt=v.r>1300;draw(LAST.els,LAST.b,o);
+    $("meta").textContent=`${luft?luft.length+" Luftbild-Kacheln":els.length+" Kartenelemente"} · Ausschnitt ±${Math.round(v.r)} m · Quelle: ${quelle} · Gefunden: ${v.gefunden.join(" · ")}`;
+    status(v.r<=60?"Näher geht es nicht (Auflösung des Luftbilds ca. 30 cm pro Pixel).":o.luft&&v.r<100?"Ausschnitt angepasst – so nah wird das Luftbild schon etwas unscharf.":"Ausschnitt angepasst.");
+  }catch(e){Object.assign(v,alt);status("Fehler: "+e.message);}
+  navBusy=false;
+}
+document.querySelectorAll("#nav button").forEach(bt=>bt.addEventListener("click",()=>{const p=bt.dataset.nav.split(",");ansicht(p[0],+p[1],+(p[2]||0));}));
 function cvPos(ev){const r=cv.getBoundingClientRect();return [(ev.clientX-r.left)*cv.width/r.width,(ev.clientY-r.top)*cv.height/r.height];}
 function toGeo(x,y){const b=LAST.b;return {lon:b.w+x/cv.width*(b.e-b.w),lat:b.s+(cv.height-y)/cv.height*(b.n-b.s)};}
 function markAt(x,y){const b=LAST.b,ms=LAST.opt.marks||[];for(let i=ms.length-1;i>=0;i--){const mx=(ms[i].lon-b.w)/(b.e-b.w)*cv.width,my=cv.height-(ms[i].lat-b.s)/(b.n-b.s)*cv.height;if(Math.hypot(mx-x,my-y)<26*(LAST.opt.story?1.6:1))return i;}return -1;}
