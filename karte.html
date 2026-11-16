@@ -174,8 +174,17 @@ async function geocodeLocal(name){
   const k=normN(name);
   const p=idx.p[k];if(p)return {lat:p[0],lon:p[1],name:p[2]||name};
   const st=idx.s[k];if(st)return {lat:st[0],lon:st[1],name:st[2]||name};
-  const keys=Object.keys(idx.p).filter(x=>x.indexOf(k)>=0).sort((x,y)=>x.length-y.length);
-  if(k.length>=4&&keys.length){const q=idx.p[keys[0]];return {lat:q[0],lon:q[1],name:q[2]||name};}
+  // tolerant: ohne Akzente (Sacre Coeur), Teilbegriffe (Campus Sacré Coeur), Wortreihenfolge egal
+  const fold=x=>x.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/œ/g,"oe").replace(/[-–.,]/g," ").replace(/\s+/g," ").trim();
+  if(!idx.pf){idx.pf=Object.keys(idx.p).map(x=>[fold(x),idx.p[x]]);idx.sf=Object.keys(idx.s).map(x=>[fold(x),idx.s[x]]);}
+  const kf=fold(k);const hit=q=>({lat:q[0],lon:q[1],name:q[2]||name});
+  if(kf.length>=4){
+    for(const L of [idx.pf,idx.sf]){const e=L.find(x=>x[0]===kf);if(e)return hit(e[1]);}
+    let c=idx.pf.filter(x=>x[0].indexOf(kf)>=0).sort((x,y)=>x[0].length-y[0].length);if(c.length)return hit(c[0][1]);
+    c=idx.pf.filter(x=>x[0].length>=6&&(" "+kf+" ").indexOf(" "+x[0]+" ")>=0).sort((x,y)=>y[0].length-x[0].length);if(c.length)return hit(c[0][1]);
+    const w=kf.split(" ").filter(x=>x.length>=3);
+    if(w.length>=2){c=idx.pf.filter(x=>w.every(t=>x[0].indexOf(t)>=0)).sort((x,y)=>x[0].length-y[0].length);if(c.length)return hit(c[0][1]);}
+  }
   return null;
 }
 // ===== Extras (Stand 09.11.2026): Straßenzüge + Flächen aus kacheln/strassen.json und kacheln/flaechen.json (extras_bauen.py) =====
@@ -375,7 +384,7 @@ $("go").onclick=async()=>{
   try{
     await document.fonts.load('700 22px "League Spartan"');await document.fonts.load('16px Montserrat');
     let quelle="Kacheln";const marks=[];const gefunden=[];
-    for(const z of zeilen){const [name,label]=z.split(/\s*\|\s*/);status("Suche „"+name+"“ in Graz …");let geo=await geocodeLocal(name);if(!geo){quelle="Overpass";geo=await geocode(name);}
+    for(const z of zeilen){const [name,label]=z.split(/\s*\|\s*/);status("Suche „"+name+"“ in Graz …");let geo=await geocodeLocal(name);if(!geo){quelle="Overpass";status("„"+name+"“ steht nicht im Graz-Verzeichnis, frage Online-Suche (kann 1 min dauern) …");try{geo=await geocode(name);}catch(e){throw new Error("„"+name+"“ nicht gefunden. Bitte Adresse (Straße + Hausnummer) oder einen Platz in der Nähe eingeben und den Marker dann an die richtige Stelle ziehen.");}}
       marks.push({lat:geo.lat,lon:geo.lon,name:geo.name,label:$("marker").checked?(label||name):""});gefunden.push(`${geo.name} (${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)})`);}
     let strecke=null;if(streckeTxt){status("Suche Strecke …");strecke=await streckeSuchen(streckeTxt);gefunden.push("Strecke: "+strecke.name+(strecke.len?" ("+(strecke.len/1000).toFixed(1).replace(".",",")+" km)":""));}
     const flaechen=[];for(const f of flaecheTxt.split(/\s*,\s*/).filter(Boolean)){status("Suche Fläche „"+f+"“ …");const v=await flaecheSuchen(f);flaechen.push(v);gefunden.push(v.typ+": "+v.name);}
