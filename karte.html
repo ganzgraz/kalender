@@ -467,7 +467,7 @@ cv.addEventListener("click",ev=>{if(!LAST||!uAkt)return;const [x,y]=cvPos(ev);co
   if(n){const [lx,ly]=uPx(uAkt.pts[n-1]);if(Math.hypot(lx-x,ly-y)<10)return;} // Doppelklick: zweiten Klick nicht als Punkt zählen
   if(n>=3){const [fx,fy]=uPx(uAkt.pts[0]);if(Math.hypot(fx-x,fy-y)<18){uFertig();return;}} // Klick auf den ersten Punkt schließt die Grenze
   const q=toGeo(x,y);uAkt.pts.push([q.lon,q.lat]);neuZeichnen();uMsg(uAkt.pts.length+" Punkt"+(uAkt.pts.length>1?"e":"")+" gesetzt – weiterklicken; Abschluss: Doppelklick, Klick auf den ersten Punkt oder „Grenze fertig“.");});
-cv.addEventListener("dblclick",ev=>{if(LAST&&uAkt){ev.preventDefault();uFertig();}});
+cv.addEventListener("dblclick",ev=>{if(LAST&&uAkt){ev.preventDefault();ev.stopImmediatePropagation();uFertig();}});
 cv.addEventListener("pointerdown",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);dragI=markAt(x,y);if(dragI>=0){try{cv.setPointerCapture(ev.pointerId);}catch(e){}ev.preventDefault();}});
 cv.addEventListener("pointermove",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);if(dragI<0){cv.style.cursor=markAt(x,y)>=0?"grab":"default";return;}Object.assign(LAST.opt.marks[dragI],toGeo(x,y));neuZeichnen();});
 cv.addEventListener("pointerup",ev=>{if(dragI<0)return;const m=LAST.opt.marks[dragI];status("Marker "+(dragI+1)+" verschoben auf "+m.lat.toFixed(5)+", "+m.lon.toFixed(5)+" (gilt für dieses Bild; „Karte erzeugen“ setzt ihn wieder auf den gesuchten Ort).");dragI=-1;});
