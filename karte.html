@@ -390,8 +390,8 @@ function draw(els,b,opt){
     g.fillStyle="#000";g.textBaseline="middle";g.fillText(opt.titel,56,56);}
   // Band unten: Logo + Credit
   g.fillStyle="#fff";g.fillRect(0,H-56,W,56);
-  g.font="12px Montserrat";g.fillStyle="#000";g.textAlign="right";g.textBaseline="middle";g.fillText(opt.luft?CREDIT_LUFT:CREDIT,W-20,H-28);g.textAlign="left";
-  const img=new Image();img.onload=()=>{const lh=46,lw=img.width*lh/img.height;g.drawImage(img,20,H-56+(56-lh)/2,lw,lh);roundCorners(c);};img.src=LOGO;
+  g.font="12px Montserrat";g.fillStyle="#000";g.textAlign="right";g.textBaseline="middle";g.fillText(opt.luft?(opt.namen?CREDIT_LUFT+" · Straßennamen: © OpenStreetMap-Mitwirkende":CREDIT_LUFT):CREDIT,W-20,H-28);g.textAlign="left";
+  roundCorners(c); // Logo im Band entfernt (16.11.2026)
 }
 function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
 function roundCorners(c){const g=c.getContext("2d");g.globalCompositeOperation="destination-in";rr(g,0,0,c.width,c.height,10);g.fillStyle="#000";g.fill();g.globalCompositeOperation="source-over";}
