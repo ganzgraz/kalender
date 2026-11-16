@@ -59,7 +59,7 @@
       <p><b>Marker korrigieren:</b> Sitzt ein Marker nicht genau, auf der fertigen Karte mit der Maus an die richtige Stelle ziehen. Doppelklick auf eine freie Stelle setzt einen zusätzlichen Marker (auch wenn die Suche einen Ort gar nicht kennt). Straßennamen werden automatisch gesetzt – Hauptstraßen zuerst, bei weitem Ausschnitt nur diese – und lassen sich per Häkchen abschalten.</p>
       <p><b>Mehr Aussage auf der Karte:</b> Unter „Mehr“ lassen sich weitere Orte als nummerierte Marker setzen (z. B. alle Standorte einer Serie), eine Strecke orange hervorheben (ganze Straßen per Namen, oder „von A bis B“ – die Karte sucht den Weg über das Grazer Straßennetz, z. B. für Demo-Routen, Umleitungen, Baustellen) und eine Fläche einfärben (Bezirk, Park, Platz, Friedhof – Bezirksgrenzen sind aus OpenStreetMap). Der Ausschnitt passt sich automatisch an, damit alles im Bild ist.</p>
       <p><b>Zoomen und verschieben:</b> Über der fertigen Karte stehen Knöpfe für ＋/－ Zoom und die vier Richtungen. Marker (auch verschobene und per Doppelklick gesetzte), Strecke und Fläche bleiben dabei erhalten. Gilt für Karte und Luftbild; beim Luftbild wird es unter ca. 100 m Ausschnitt unscharf.</p>
-      <p><b>Grenze einzeichnen:</b> „Grenze einzeichnen“ klicken, die Eckpunkte der Reihe nach auf der Karte anklicken, dann „Grenze fertig“. Es wird nur der Umriss gezeichnet (orange), das Innere bleibt sichtbar – z. B. für einen Schulhof im Luftbild. „Grenze löschen“ entfernt die letzte. „Karte erzeugen“ löscht alle eingezeichneten Grenzen, Zoomen und Verschieben nicht.</p>
+      <p><b>Grenze einzeichnen:</b> „Grenze einzeichnen“ klicken, die Eckpunkte der Reihe nach auf der Karte einzeln anklicken (nicht ziehen); Abschluss per Doppelklick, Klick auf den ersten Punkt oder „Grenze fertig“. Es wird nur der Umriss gezeichnet (orange), das Innere bleibt sichtbar – z. B. für einen Schulhof im Luftbild. „Grenze löschen“ entfernt die letzte. „Karte erzeugen“ löscht alle eingezeichneten Grenzen, Zoomen und Verschieben nicht.</p>
       <p><b>Luftbild:</b> Bei „Kartenart“ auf „Luftbild (basemap.at)“ stellen → statt der gezeichneten Karte kommt das amtliche Orthofoto (Blick senkrecht von oben, kein 3D), z. B. um Grünflächen oder Bauplätze zu zeigen. Marker, Strecke, Fläche, Titel und Straßennamen funktionieren wie gewohnt; für Details „sehr eng“ oder „eng“ wählen. Frei nutzbar (CC BY 4.0), Bildnachweis: <b>Grafik: ganzgraz · Luftbild: basemap.at</b> (steht auch im Band; im Newsletter „basemap.at“ verlinken). Die Aufnahmen sind ein bis drei Jahre alt – neue Baustellen können fehlen.</p>
       <p>Findet die Suche einen Ort nicht: Straße + Hausnummer probieren oder den Namen so schreiben, wie er auf Straßenschildern steht (z. B. „Kaiser-Josef-Platz“). Keine Karten bei Unfallopfern oder Privatadressen.</p>
     </details>
@@ -77,6 +77,7 @@
       <button class="secondary" id="uStart" title="Eckpunkte anklicken, dann „Grenze fertig“">Grenze einzeichnen</button>
       <button class="secondary" id="uWeg" title="letzte eingezeichnete Grenze entfernen">Grenze löschen</button>
     </div>
+    <div id="navhint" style="font-weight:600;margin:0 0 8px;min-height:1.2em"></div>
     <canvas id="c"></canvas><div class="hint" id="meta"></div></div>
 </main>
 <script>
@@ -433,6 +434,7 @@ $("go").onclick=async()=>{
 // ----- Marker mit der Maus verschieben / per Doppelklick neu setzen -----
 let LAST=null,dragI=-1,raf=0;const cv=$("c");
 // Ausschnitt nachträglich ändern (Zoom/Verschieben): Marker, Strecke, Fläche bleiben, nur der Hintergrund wird neu geladen
+function uMsg(t){status(t);$("navhint").textContent=t;}
 let navBusy=false;
 async function ansicht(art,a,b2){
   if(!LAST||!LAST.view||navBusy)return;navBusy=true;const v=LAST.view,o=LAST.opt;const alt={lat:v.lat,lon:v.lon,r:v.r};
@@ -440,12 +442,12 @@ async function ansicht(art,a,b2){
     if(art==="z"){v.r=Math.max(60,Math.min(4000,v.r*a));}
     else{const k=Math.cos(v.lat*Math.PI/180);v.lon+=a*0.35*v.r*v.aspect/(111320*k);v.lat+=b2*0.35*v.r/111320;}
     const b=bbox(v.lat,v.lon,v.r,v.aspect);const geb=$("gebaeude").checked&&v.r<=1300;let els=[],luft=null,quelle=v.quelle;
-    if(o.luft){status("Lade Luftbild …");luft=await luftKacheln(b,o.story?1080:1152);quelle="basemap.at (Zoom "+luft.z+")";}
-    else{status("Lade Kartendaten …");els=await fetchAreaLocal(b,geb);if(!els){quelle="Overpass";status("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,geb);}}
+    if(o.luft){uMsg("Lade Luftbild …");luft=await luftKacheln(b,o.story?1080:1152);quelle="basemap.at (Zoom "+luft.z+")";}
+    else{uMsg("Lade Kartendaten …");els=await fetchAreaLocal(b,geb);if(!els){quelle="Overpass";uMsg("Kacheln fehlen hier, lade von Overpass (10–40 s) …");els=await fetchArea(b,geb);}}
     LAST.els=els;LAST.b=b;o.luft=luft;o.nurHaupt=v.r>1300;draw(LAST.els,LAST.b,o);
     $("meta").textContent=`${luft?luft.length+" Luftbild-Kacheln":els.length+" Kartenelemente"} · Ausschnitt ±${Math.round(v.r)} m · Quelle: ${quelle} · Gefunden: ${v.gefunden.join(" · ")}`;
-    status(v.r<=60?"Näher geht es nicht (Auflösung des Luftbilds ca. 30 cm pro Pixel).":o.luft&&v.r<100?"Ausschnitt angepasst – so nah wird das Luftbild schon etwas unscharf.":"Ausschnitt angepasst.");
-  }catch(e){Object.assign(v,alt);status("Fehler: "+e.message);}
+    uMsg(v.r<=60?"Näher geht es nicht (Auflösung des Luftbilds ca. 30 cm pro Pixel).":o.luft&&v.r<100?"Ausschnitt angepasst – so nah wird das Luftbild schon etwas unscharf.":"Ausschnitt angepasst.");
+  }catch(e){Object.assign(v,alt);uMsg("Fehler: "+e.message);}
   navBusy=false;
 }
 document.querySelectorAll("#nav button").forEach(bt=>bt.addEventListener("click",()=>{const p=bt.dataset.nav.split(",");ansicht(p[0],+p[1],+(p[2]||0));}));
@@ -456,10 +458,16 @@ function neuZeichnen(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw(L
 // Grenze selbst einzeichnen (nur Umriss)
 let uAkt=null;
 $("uStart").addEventListener("click",()=>{if(!LAST)return;
-  if(uAkt){if(uAkt.pts.length>=3){uAkt.zu=true;status("Grenze eingezeichnet.");}else{LAST.opt.umrisse.pop();status("Abgebrochen (mindestens 3 Punkte nötig).");}uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();return;}
-  uAkt={pts:[],zu:false};(LAST.opt.umrisse=LAST.opt.umrisse||[]).push(uAkt);$("uStart").textContent="Grenze fertig";cv.style.cursor="crosshair";status("Eckpunkte der Grenze der Reihe nach anklicken, dann „Grenze fertig“.");});
-$("uWeg").addEventListener("click",()=>{if(!LAST||!LAST.opt.umrisse||!LAST.opt.umrisse.length)return;LAST.opt.umrisse.pop();uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();status("Grenze entfernt.");});
-cv.addEventListener("click",ev=>{if(!LAST||!uAkt)return;const [x,y]=cvPos(ev);const q=toGeo(x,y);uAkt.pts.push([q.lon,q.lat]);neuZeichnen();});
+  if(uAkt){if(uAkt.pts.length>=3){uAkt.zu=true;uMsg("Grenze eingezeichnet.");}else{LAST.opt.umrisse.pop();uMsg("Abgebrochen (mindestens 3 Punkte nötig).");}uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();return;}
+  uAkt={pts:[],zu:false};(LAST.opt.umrisse=LAST.opt.umrisse||[]).push(uAkt);$("uStart").textContent="Grenze fertig";cv.style.cursor="crosshair";uMsg("Jetzt auf der Karte die Eckpunkte der Grenze einzeln anklicken (nicht ziehen). Abschluss: Doppelklick, Klick auf den ersten Punkt oder „Grenze fertig“.");$("c").scrollIntoView({block:"nearest"});});
+$("uWeg").addEventListener("click",()=>{if(!LAST||!LAST.opt.umrisse||!LAST.opt.umrisse.length)return;LAST.opt.umrisse.pop();uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();uMsg("Grenze entfernt.");});
+const uPx=q=>{const b=LAST.b;return [(q[0]-b.w)/(b.e-b.w)*cv.width,cv.height-(q[1]-b.s)/(b.n-b.s)*cv.height];};
+function uFertig(){if(!uAkt)return;if(uAkt.pts.length>=3){uAkt.zu=true;uMsg("Grenze eingezeichnet.");}else{LAST.opt.umrisse.pop();uMsg("Abgebrochen (mindestens 3 Punkte nötig).");}uAkt=null;$("uStart").textContent="Grenze einzeichnen";cv.style.cursor="default";neuZeichnen();}
+cv.addEventListener("click",ev=>{if(!LAST||!uAkt)return;const [x,y]=cvPos(ev);const n=uAkt.pts.length;
+  if(n){const [lx,ly]=uPx(uAkt.pts[n-1]);if(Math.hypot(lx-x,ly-y)<10)return;} // Doppelklick: zweiten Klick nicht als Punkt zählen
+  if(n>=3){const [fx,fy]=uPx(uAkt.pts[0]);if(Math.hypot(fx-x,fy-y)<18){uFertig();return;}} // Klick auf den ersten Punkt schließt die Grenze
+  const q=toGeo(x,y);uAkt.pts.push([q.lon,q.lat]);neuZeichnen();uMsg(uAkt.pts.length+" Punkt"+(uAkt.pts.length>1?"e":"")+" gesetzt – weiterklicken; Abschluss: Doppelklick, Klick auf den ersten Punkt oder „Grenze fertig“.");});
+cv.addEventListener("dblclick",ev=>{if(LAST&&uAkt){ev.preventDefault();uFertig();}});
 cv.addEventListener("pointerdown",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);dragI=markAt(x,y);if(dragI>=0){try{cv.setPointerCapture(ev.pointerId);}catch(e){}ev.preventDefault();}});
 cv.addEventListener("pointermove",ev=>{if(!LAST||uAkt)return;const [x,y]=cvPos(ev);if(dragI<0){cv.style.cursor=markAt(x,y)>=0?"grab":"default";return;}Object.assign(LAST.opt.marks[dragI],toGeo(x,y));neuZeichnen();});
 cv.addEventListener("pointerup",ev=>{if(dragI<0)return;const m=LAST.opt.marks[dragI];status("Marker "+(dragI+1)+" verschoben auf "+m.lat.toFixed(5)+", "+m.lon.toFixed(5)+" (gilt für dieses Bild; „Karte erzeugen“ setzt ihn wieder auf den gesuchten Ort).");dragI=-1;});
