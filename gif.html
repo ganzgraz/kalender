@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ganzgraz-GIF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--lila:#4e2996;--helllila:#cdb9ee;--orange:#ff8900;--grau:#f4f4f4}
+  body{font-family:Montserrat,Arial,sans-serif;background:var(--grau);margin:0;color:#000}
+  header{background:var(--lila);color:#fff;padding:14px 20px;font-family:"League Spartan",Arial,sans-serif;font-weight:700;font-size:22px}
+  header span{color:var(--helllila);font-weight:400;font-family:Montserrat;font-size:14px;margin-left:10px}
+  main{max-width:1200px;margin:0 auto;padding:20px}
+  .box{background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px}
+  label{display:block;font-size:13px;margin:10px 0 4px}
+  input[type=text],input[type=number],select{font:16px Montserrat,Arial;padding:9px 12px;border:2px solid #000;border-radius:8px;width:100%;box-sizing:border-box}
+  .row{display:grid;grid-template-columns:2fr 1fr 2fr;gap:12px}
+  @media(max-width:700px){.row{grid-template-columns:1fr}}
+  button{font:16px Montserrat,Arial;padding:12px 26px;border:2px solid #000;border-radius:50px;cursor:pointer;margin-top:14px;margin-right:8px}
+  button:disabled{opacity:.45;cursor:default}
+  .primary{background:var(--lila);color:#fff}
+  .secondary{background:var(--helllila);color:#000}
+  .klein{padding:5px 12px;font-size:13px;margin:0 4px 0 0}
+  #status{font-size:14px;margin-top:10px;min-height:20px;font-weight:600}
+  .hint{font-size:12px;color:#444;margin-top:8px}
+  details{font-size:13px;margin-top:8px}
+  #drop{border:2px dashed var(--lila);border-radius:10px;padding:22px;text-align:center;font-size:14px;cursor:pointer;background:#faf7ff}
+  #drop.over{background:var(--helllila)}
+  #liste{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px}
+  .karte{width:210px;font-size:12px}
+  .karte canvas{width:210px;height:auto;border-radius:8px;display:block;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.2);touch-action:none}
+  .karte .nr{font-weight:700;font-size:13px;margin-bottom:4px}
+  .karte input[type=range]{width:100%}
+  .karte .kn{margin-top:6px}
+  #out img{max-width:340px;width:100%;height:auto;border-radius:10px;display:block;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  body.embed header{display:none}
+  body.embed main{padding:0 0 20px}
+  .cb{display:flex;align-items:center;gap:8px;font-size:14px;margin-top:12px}
+  .cb input{width:auto}
+</style>
+</head>
+<body>
+<script>if(/[?&]embed=1/.test(location.search))document.addEventListener("DOMContentLoaded",function(){document.body.classList.add("embed")});</script>
+<header>ganzgraz-GIF <span>Wechselbilder für den Newsletter, z. B. Nachbar:in des Tages</span></header>
+<main>
+  <div class="box">
+    <div id="drop">Fotos hierher ziehen oder klicken (2 bis 6 Bilder, JPG oder PNG)<input type="file" id="datei" accept="image/*" multiple hidden></div>
+    <div id="liste"></div>
+    <div class="hint">Reihenfolge = Reihenfolge im GIF. Ausschnitt: Bild mit der Maus verschieben, mit dem Regler zoomen. Das erste Bild ist das wichtigste – Outlook am Desktop zeigt nur dieses.</div>
+  </div>
+  <div class="box">
+    <div class="row">
+      <div><label>Format</label><select id="format">
+        <option value="660x990" selected>Hochformat 2:3 (660 × 990) – wie Nachbar:in des Tages</option>
+        <option value="660x825">Hochformat 4:5 (660 × 825)</option>
+        <option value="660x660">Quadrat (660 × 660)</option>
+        <option value="990x660">Querformat 3:2 (990 × 660)</option>
+      </select></div>
+      <div><label>Sekunden pro Bild</label><input type="number" id="dauer" value="2.5" min="0.5" max="10" step="0.5"></div>
+      <div><label>Dateiname (ohne Endung)</label><input type="text" id="name" placeholder="z. B. vorname-nachname"></div>
+    </div>
+    <label class="cb"><input type="checkbox" id="fade"> Weiche Überblendung zwischen den Bildern (Datei wird deutlich größer)</label>
+    <label class="cb"><input type="checkbox" id="dither" checked> Feine Farbverläufe (empfohlen für Fotos; ohne Häkchen kleinere Datei, aber Streifen in Himmel und Haut möglich)</label>
+    <button class="primary" id="go" disabled>GIF erzeugen</button>
+    <button class="secondary" id="dl" disabled>GIF herunterladen</button>
+    <div id="status"></div>
+    <details><summary>Hinweise für Mailchimp</summary>
+      <p><b>Einfügen:</b> Bildblock → GIF hochladen. Die Größe nur über <b>Inhalt → Größe → Maßstab</b> (Schieberegler) ändern, z. B. auf ca. 50–55 % für rund 330 px Breite. <b>Nie</b> „Bearbeiten“ oder „Zuschneiden“ im Bildeditor verwenden – Mailchimp macht daraus ein unbewegtes, unscharfes JPEG.</p>
+      <p><b>Warum 660 px breit:</b> Das GIF wird mit rund 330 px angezeigt und ist doppelt so groß gespeichert, damit es am Handy scharf bleibt.</p>
+      <p><b>Text dazu:</b> Bei mehreren Bildern „Fotos: Name“ statt „Foto: Name“. Alt-Text im Bildblock anpassen (beschreibt beide Motive). Im Text nicht auf „das Foto unten“ verweisen, wenn damit das zweite Bild gemeint ist – in Outlook am Desktop sieht man nur das erste.</p>
+      <p><b>Dateigröße:</b> Gut sind unter 1 MB, über 2 MB lädt es am Handy spürbar langsam. Kleiner wird es mit weniger Bildern, ohne Überblendung oder ohne „Feine Farbverläufe“.</p>
+      <p><b>Prüfen:</b> Testmail an dich selbst schicken und am Handy sowie in Gmail ansehen, ob das Bild wechselt. Bildrechte wie bei jedem Foto: nur eigene oder freigegebene Bilder, Credit nennen.</p>
+    </details>
+  </div>
+  <div class="box" id="out" style="display:none"><img id="vorschau" alt="Vorschau des erzeugten GIFs"><div class="hint" id="meta"></div></div>
+</main>
+<script>/* gifenc (MIT, Matt DesLauriers) */(function(){var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicationExtensionLabel:255,graphicControlExtensionLabel:249,imageSeparator:44,signatureSize:3,versionSize:3,globalColorTableFlagMask:128,colorResolutionMask:112,sortFlagMask:8,globalColorTableSizeMask:7,applicationIdentifierSize:8,applicationAuthCodeSize:3,disposalMethodMask:28,userInputFlagMask:2,transparentColorFlagMask:1,localColorTableFlagMask:128,interlaceFlagMask:64,idSortFlagMask:32,localColorTableSizeMask:7};function F(t=256){let e=0,s=new Uint8Array(t);return{get buffer(){return s.buffer},reset(){e=0},bytesView(){return s.subarray(0,e)},bytes(){return s.slice(0,e)},writeByte(r){n(e+1),s[e]=r,e++},writeBytes(r,o=0,i=r.length){n(e+i);for(let c=0;c<i;c++)s[e++]=r[c+o]},writeBytesView(r,o=0,i=r.byteLength){n(e+i),s.set(r.subarray(o,o+i),e),e+=i}};function n(r){var o=s.length;if(o>=r)return;var i=1024*1024;r=Math.max(r,o*(o<i?2:1.125)>>>0),o!=0&&(r=Math.max(r,256));let c=s;s=new Uint8Array(r),e>0&&s.set(c.subarray(0,e),0)}}var O=12,J=5003,lt=[0,1,3,7,15,31,63,127,255,511,1023,2047,4095,8191,16383,32767,65535];function at(t,e,s,n,r=F(512),o=new Uint8Array(256),i=new Int32Array(J),c=new Int32Array(J)){let x=i.length,a=Math.max(2,n);o.fill(0),c.fill(0),i.fill(-1);let l=0,f=0,g=a+1,h=g,b=!1,w=h,_=(1<<w)-1,u=1<<g-1,k=u+1,B=u+2,p=0,A=s[0],z=0;for(let y=x;y<65536;y*=2)++z;z=8-z,r.writeByte(a),I(u);let d=s.length;for(let y=1;y<d;y++){t:{let m=s[y],v=(m<<O)+A,M=m<<z^A;if(i[M]===v){A=c[M];break t}let V=M===0?1:x-M;for(;i[M]>=0;)if(M-=V,M<0&&(M+=x),i[M]===v){A=c[M];break t}I(A),A=m,B<1<<O?(c[M]=B++,i[M]=v):(i.fill(-1),B=u+2,b=!0,I(u))}}return I(A),I(k),r.writeByte(0),r.bytesView();function I(y){for(l&=lt[f],f>0?l|=y<<f:l=y,f+=w;f>=8;)o[p++]=l&255,p>=254&&(r.writeByte(p),r.writeBytesView(o,0,p),p=0),l>>=8,f-=8;if((B>_||b)&&(b?(w=h,_=(1<<w)-1,b=!1):(++w,_=w===O?1<<w:(1<<w)-1)),y==k){for(;f>0;)o[p++]=l&255,p>=254&&(r.writeByte(p),r.writeBytesView(o,0,p),p=0),l>>=8,f-=8;p>0&&(r.writeByte(p),r.writeBytesView(o,0,p),p=0)}}}var $=at;function D(t,e,s){return t<<8&63488|e<<2&992|s>>3}function G(t,e,s,n){return t>>4|e&240|(s&240)<<4|(n&240)<<8}function j(t,e,s){return t>>4<<8|e&240|s>>4}function R(t,e,s){return t<e?e:t>s?s:t}function T(t){return t*t}function tt(t,e,s){var n=0,r=1e100;let o=t[e],i=o.cnt,c=o.ac,x=o.rc,a=o.gc,l=o.bc;for(var f=o.fw;f!=0;f=t[f].fw){let h=t[f],b=h.cnt,w=i*b/(i+b);if(!(w>=r)){var g=0;s&&(g+=w*T(h.ac-c),g>=r)||(g+=w*T(h.rc-x),!(g>=r)&&(g+=w*T(h.gc-a),!(g>=r)&&(g+=w*T(h.bc-l),!(g>=r)&&(r=g,n=f))))}}o.err=r,o.nn=n}function Q(){return{ac:0,rc:0,gc:0,bc:0,cnt:0,nn:0,fw:0,bk:0,tm:0,mtm:0,err:0}}function ut(t,e){let s=e==="rgb444"?4096:65536,n=new Array(s),r=t.length;if(e==="rgba4444")for(let o=0;o<r;++o){let i=t[o],c=i>>24&255,x=i>>16&255,a=i>>8&255,l=i&255,f=G(l,a,x,c),g=f in n?n[f]:n[f]=Q();g.rc+=l,g.gc+=a,g.bc+=x,g.ac+=c,g.cnt++}else if(e==="rgb444")for(let o=0;o<r;++o){let i=t[o],c=i>>16&255,x=i>>8&255,a=i&255,l=j(a,x,c),f=l in n?n[l]:n[l]=Q();f.rc+=a,f.gc+=x,f.bc+=c,f.cnt++}else for(let o=0;o<r;++o){let i=t[o],c=i>>16&255,x=i>>8&255,a=i&255,l=D(a,x,c),f=l in n?n[l]:n[l]=Q();f.rc+=a,f.gc+=x,f.bc+=c,f.cnt++}return n}function H(t,e,s={}){let{format:n="rgb565",clearAlpha:r=!0,clearAlphaColor:o=0,clearAlphaThreshold:i=0,oneBitAlpha:c=!1}=s;if(!t||!t.buffer)throw new Error("quantize() expected RGBA Uint8Array data");if(!(t instanceof Uint8Array)&&!(t instanceof Uint8ClampedArray))throw new Error("quantize() expected RGBA Uint8Array data");let x=new Uint32Array(t.buffer),a=s.useSqrt!==!1,l=n==="rgba4444",f=ut(x,n),g=f.length,h=g-1,b=new Uint32Array(g+1);for(var w=0,u=0;u<g;++u){let C=f[u];if(C!=null){var _=1/C.cnt;l&&(C.ac*=_),C.rc*=_,C.gc*=_,C.bc*=_,f[w++]=C}}T(e)/w<.022&&(a=!1);for(var u=0;u<w-1;++u)f[u].fw=u+1,f[u+1].bk=u,a&&(f[u].cnt=Math.sqrt(f[u].cnt));a&&(f[u].cnt=Math.sqrt(f[u].cnt));var k,B,p;for(u=0;u<w;++u){tt(f,u,!1);var A=f[u].err;for(B=++b[0];B>1&&(p=B>>1,!(f[k=b[p]].err<=A));B=p)b[B]=k;b[B]=u}var z=w-e;for(u=0;u<z;){for(var d;;){var I=b[1];if(d=f[I],d.tm>=d.mtm&&f[d.nn].mtm<=d.tm)break;d.mtm==h?I=b[1]=b[b[0]--]:(tt(f,I,!1),d.tm=u);var A=f[I].err;for(B=1;(p=B+B)<=b[0]&&(p<b[0]&&f[b[p]].err>f[b[p+1]].err&&p++,!(A<=f[k=b[p]].err));B=p)b[B]=k;b[B]=I}var y=f[d.nn],m=d.cnt,v=y.cnt,_=1/(m+v);l&&(d.ac=_*(m*d.ac+v*y.ac)),d.rc=_*(m*d.rc+v*y.rc),d.gc=_*(m*d.gc+v*y.gc),d.bc=_*(m*d.bc+v*y.bc),d.cnt+=y.cnt,d.mtm=++u,f[y.bk].fw=y.fw,f[y.fw].bk=y.bk,y.mtm=h}let M=[];var V=0;for(u=0;;++V){let L=R(Math.round(f[u].rc),0,255),C=R(Math.round(f[u].gc),0,255),Y=R(Math.round(f[u].bc),0,255),E=255;if(l){if(E=R(Math.round(f[u].ac),0,255),c){let st=typeof c=="number"?c:127;E=E<=st?0:255}r&&E<=i&&(L=C=Y=o,E=0)}let K=l?[L,C,Y,E]:[L,C,Y];if(xt(M,K)||M.push(K),(u=f[u].fw)==0)break}return M}function xt(t,e){for(let s=0;s<t.length;s++){let n=t[s],r=n[0]===e[0]&&n[1]===e[1]&&n[2]===e[2],o=n.length>=4&&e.length>=4?n[3]===e[3]:!0;if(r&&o)return!0}return!1}function U(t,e){var s=0,n;for(n=0;n<t.length;n++){let r=t[n]-e[n];s+=r*r}return s}function P(t,e){return e>1?Math.round(t/e)*e:t}function et(t,{roundRGB:e=5,roundAlpha:s=10,oneBitAlpha:n=null}={}){let r=new Uint32Array(t.buffer);for(let o=0;o<r.length;o++){let i=r[o],c=i>>24&255,x=i>>16&255,a=i>>8&255,l=i&255;if(c=P(c,s),n){let f=typeof n=="number"?n:127;c=c<=f?0:255}l=P(l,e),a=P(a,e),x=P(x,e),r[o]=c<<24|x<<16|a<<8|l<<0}}function nt(t,e,s="rgb565"){if(!t||!t.buffer)throw new Error("quantize() expected RGBA Uint8Array data");if(!(t instanceof Uint8Array)&&!(t instanceof Uint8ClampedArray))throw new Error("quantize() expected RGBA Uint8Array data");if(e.length>256)throw new Error("applyPalette() only works with 256 colors or less");let n=new Uint32Array(t.buffer),r=n.length,o=s==="rgb444"?4096:65536,i=new Uint8Array(r),c=new Array(o),x=s==="rgba4444";if(s==="rgba4444")for(let a=0;a<r;a++){let l=n[a],f=l>>24&255,g=l>>16&255,h=l>>8&255,b=l&255,w=G(b,h,g,f),_=w in c?c[w]:c[w]=gt(b,h,g,f,e);i[a]=_}else{let a=s==="rgb444"?j:D;for(let l=0;l<r;l++){let f=n[l],g=f>>16&255,h=f>>8&255,b=f&255,w=a(b,h,g),_=w in c?c[w]:c[w]=bt(b,h,g,e);i[l]=_}}return i}function gt(t,e,s,n,r){let o=0,i=1e100;for(let c=0;c<r.length;c++){let x=r[c],a=x[3],l=q(a-n);if(l>i)continue;let f=x[0];if(l+=q(f-t),l>i)continue;let g=x[1];if(l+=q(g-e),l>i)continue;let h=x[2];l+=q(h-s),!(l>i)&&(i=l,o=c)}return o}function bt(t,e,s,n){let r=0,o=1e100;for(let i=0;i<n.length;i++){let c=n[i],x=c[0],a=q(x-t);if(a>o)continue;let l=c[1];if(a+=q(l-e),a>o)continue;let f=c[2];a+=q(f-s),!(a>o)&&(o=a,r=i)}return r}function rt(t,e,s=5){if(!t.length||!e.length)return;let n=t.map(i=>i.slice(0,3)),r=s*s,o=t[0].length;for(let i=0;i<e.length;i++){let c=e[i];c.length<o?c=[c[0],c[1],c[2],255]:c.length>o?c=c.slice(0,3):c=c.slice();let x=N(n,c.slice(0,3),U),a=x[0],l=x[1];l>0&&l<=r&&(t[a]=c)}}function q(t){return t*t}function W(t,e,s=U){let n=Infinity,r=-1;for(let o=0;o<t.length;o++){let i=t[o],c=s(e,i);c<n&&(n=c,r=o)}return r}function N(t,e,s=U){let n=Infinity,r=-1;for(let o=0;o<t.length;o++){let i=t[o],c=s(e,i);c<n&&(n=c,r=o)}return[r,n]}function ot(t,e,s=U){return t[W(t,e,s)]}function ct(t={}){let{initialCapacity:e=4096,auto:s=!0}=t,n=F(e),r=5003,o=new Uint8Array(256),i=new Int32Array(r),c=new Int32Array(r),x=!1;return{reset(){n.reset(),x=!1},finish(){n.writeByte(X.trailer)},bytes(){return n.bytes()},bytesView(){return n.bytesView()},get buffer(){return n.buffer},get stream(){return n},writeHeader:a,writeFrame(l,f,g,h={}){let{transparent:b=!1,transparentIndex:w=0,delay:_=0,palette:u=null,repeat:k=0,colorDepth:B=8,dispose:p=-1}=h,A=!1;if(s?x||(A=!0,a(),x=!0):A=Boolean(h.first),f=Math.max(0,Math.floor(f)),g=Math.max(0,Math.floor(g)),A){if(!u)throw new Error("First frame must include a { palette } option");pt(n,f,g,u,B),it(n,u),k>=0&&dt(n,k)}let z=Math.round(_/10);wt(n,p,z,b,w);let d=Boolean(u)&&!A;ht(n,f,g,d?u:null),d&&it(n,u),yt(n,l,f,g,B,o,i,c)}};function a(){ft(n,"GIF89a")}}function wt(t,e,s,n,r){t.writeByte(33),t.writeByte(249),t.writeByte(4),r<0&&(r=0,n=!1);var o,i;n?(o=1,i=2):(o=0,i=0),e>=0&&(i=e&7),i<<=2;let c=0;t.writeByte(0|i|c|o),S(t,s),t.writeByte(r||0),t.writeByte(0)}function pt(t,e,s,n,r=8){let o=1,i=0,c=Z(n.length)-1,x=o<<7|r-1<<4|i<<3|c,a=0,l=0;S(t,e),S(t,s),t.writeBytes([x,a,l])}function dt(t,e){t.writeByte(33),t.writeByte(255),t.writeByte(11),ft(t,"NETSCAPE2.0"),t.writeByte(3),t.writeByte(1),S(t,e),t.writeByte(0)}function it(t,e){let s=1<<Z(e.length);for(let n=0;n<s;n++){let r=[0,0,0];n<e.length&&(r=e[n]),t.writeByte(r[0]),t.writeByte(r[1]),t.writeByte(r[2])}}function ht(t,e,s,n){if(t.writeByte(44),S(t,0),S(t,0),S(t,e),S(t,s),n){let r=0,o=0,i=Z(n.length)-1;t.writeByte(128|r|o|0|i)}else t.writeByte(0)}function yt(t,e,s,n,r=8,o,i,c){$(s,n,e,r,t,o,i,c)}function S(t,e){t.writeByte(e&255),t.writeByte(e>>8&255)}function ft(t,e){for(var s=0;s<e.length;s++)t.writeByte(e.charCodeAt(s))}function Z(t){return Math.max(Math.ceil(Math.log2(t)),1)}var Bt=ct;window.gifenc={GIFEncoder:ct,quantize:H,nearestColorIndex:W};})();</script>
+<script>
+const $=id=>document.getElementById(id);
+const bilder=[]; // {img,name,fx,fy,zoom}
+let blobUrl=null,blob=null;
+function status(t){$("status").textContent=t;}
+function ziel(){const [w,h]=$("format").value.split("x").map(Number);return {w,h};}
+// Ausschnitt "cover": Bild füllt das Format, fx/fy (0..1) verschieben, zoom vergrößert
+function zeichne(g,b,W,H){
+  const iw=b.img.naturalWidth,ih=b.img.naturalHeight;const s=Math.max(W/iw,H/ih)*b.zoom;
+  const dw=iw*s,dh=ih*s;const x=(W-dw)*b.fx,y=(H-dh)*b.fy;
+  g.fillStyle="#fff";g.fillRect(0,0,W,H);g.imageSmoothingQuality="high";g.drawImage(b.img,x,y,dw,dh);
+}
+function liste(){
+  const L=$("liste");L.innerHTML="";const {w,h}=ziel();
+  bilder.forEach((b,i)=>{
+    const d=document.createElement("div");d.className="karte";
+    const nr=document.createElement("div");nr.className="nr";nr.textContent=(i+1)+". "+b.name.slice(0,22);
+    const c=document.createElement("canvas");c.width=420;c.height=Math.round(420*h/w);
+    const g=c.getContext("2d");const mal=()=>zeichne(g,b,c.width,c.height);mal();
+    let start=null;
+    c.addEventListener("pointerdown",ev=>{start={x:ev.clientX,y:ev.clientY,fx:b.fx,fy:b.fy};try{c.setPointerCapture(ev.pointerId);}catch(e){}c.style.cursor="grabbing";});
+    c.addEventListener("pointermove",ev=>{if(!start)return;const r=c.getBoundingClientRect();
+      const iw=b.img.naturalWidth,ih=b.img.naturalHeight;const s=Math.max(c.width/iw,c.height/ih)*b.zoom;
+      const ox=(iw*s-c.width)*r.width/c.width,oy=(ih*s-c.height)*r.height/c.height; // verschiebbarer Überstand in Bildschirm-Pixeln
+      if(ox>1)b.fx=Math.min(1,Math.max(0,start.fx-(ev.clientX-start.x)/ox));
+      if(oy>1)b.fy=Math.min(1,Math.max(0,start.fy-(ev.clientY-start.y)/oy));mal();});
+    const ende=()=>{start=null;c.style.cursor="grab";};c.addEventListener("pointerup",ende);c.addEventListener("pointercancel",ende);
+    const z=document.createElement("input");z.type="range";z.min="1";z.max="2.5";z.step="0.05";z.value=b.zoom;z.title="Zoom";
+    z.addEventListener("input",()=>{b.zoom=+z.value;mal();});
+    const kn=document.createElement("div");kn.className="kn";
+    const kb=(t,titel,fn,aus)=>{const x=document.createElement("button");x.className="secondary klein";x.textContent=t;x.title=titel;x.disabled=!!aus;x.addEventListener("click",fn);kn.appendChild(x);};
+    kb("←","weiter nach vorne",()=>{bilder.splice(i-1,0,bilder.splice(i,1)[0]);liste();},i===0);
+    kb("→","weiter nach hinten",()=>{bilder.splice(i+1,0,bilder.splice(i,1)[0]);liste();},i===bilder.length-1);
+    kb("Entfernen","Bild entfernen",()=>{bilder.splice(i,1);liste();});
+    const zl=document.createElement("div");zl.textContent="Zoom";zl.style.marginTop="6px";
+    d.append(nr,c,zl,z,kn);L.appendChild(d);
+  });
+  $("go").disabled=bilder.length<2;
+  if(bilder.length===1)status("Noch mindestens ein zweites Bild hinzufügen.");else if(bilder.length>=2)status(bilder.length+" Bilder bereit.");else status("");
+}
+function laden(files){
+  const fs=[...files].filter(f=>/^image\//.test(f.type));if(!fs.length){status("Das sind keine Bilddateien.");return;}
+  let offen=fs.length;
+  fs.forEach(f=>{const img=new Image();img.onload=()=>{if(bilder.length<6)bilder.push({img,name:f.name,fx:0.5,fy:0.5,zoom:1});else status("Höchstens 6 Bilder – weitere wurden ausgelassen.");if(--offen===0){liste();if(!$("name").value&&bilder[0])$("name").value=bilder[0].name.replace(/\.[^.]+$/,"").toLowerCase().replace(/[^a-z0-9äöüß]+/g,"-").replace(/^-|-$/g,"");}};
+    img.onerror=()=>{status("„"+f.name+"“ konnte nicht gelesen werden (HEIC vom iPhone bitte vorher als JPG exportieren).");if(--offen===0)liste();};img.src=URL.createObjectURL(f);});
+}
+$("drop").addEventListener("click",()=>$("datei").click());
+$("datei").addEventListener("change",ev=>{laden(ev.target.files);ev.target.value="";});
+["dragenter","dragover"].forEach(t=>$("drop").addEventListener(t,ev=>{ev.preventDefault();$("drop").classList.add("over");}));
+["dragleave","drop"].forEach(t=>$("drop").addEventListener(t,ev=>{ev.preventDefault();$("drop").classList.remove("over");}));
+$("drop").addEventListener("drop",ev=>laden(ev.dataTransfer.files));
+$("format").addEventListener("change",liste);
+// Floyd-Steinberg-Dithering auf eine Palette; Cache über 15-Bit-Farbe, sonst zu langsam
+function indexiere(rgba,W,H,pal,dither){
+  const n=W*H,out=new Uint8Array(n);const cache=new Int16Array(32768).fill(-1);
+  const nah=(r,g,b)=>{const k=((r>>3)<<10)|((g>>3)<<5)|(b>>3);let v=cache[k];if(v<0){let best=0,bd=1e9;for(let i=0;i<pal.length;i++){const p=pal[i];const dr=r-p[0],dg=g-p[1],db=b-p[2];const d=dr*dr+dg*dg+db*db;if(d<bd){bd=d;best=i;}}cache[k]=v=best;}return v;};
+  if(!dither){for(let i=0;i<n;i++)out[i]=nah(rgba[i*4],rgba[i*4+1],rgba[i*4+2]);return out;}
+  const buf=new Float32Array(n*3);for(let i=0;i<n;i++){buf[i*3]=rgba[i*4];buf[i*3+1]=rgba[i*4+1];buf[i*3+2]=rgba[i*4+2];}
+  const cl=v=>v<0?0:v>255?255:v|0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,j=i*3;const r=cl(buf[j]),g=cl(buf[j+1]),b=cl(buf[j+2]);const k=nah(r,g,b);out[i]=k;const p=pal[k];
+    const er=(r-p[0])*0.75,eg=(g-p[1])*0.75,eb=(b-p[2])*0.75; // leicht gedämpft: weniger Rauschen, kleinere Datei
+    const add=(xx,yy,f)=>{if(xx<0||xx>=W||yy>=H)return;const q=(yy*W+xx)*3;buf[q]+=er*f;buf[q+1]+=eg*f;buf[q+2]+=eb*f;};
+    add(x+1,y,7/16);add(x-1,y+1,3/16);add(x,y+1,5/16);add(x+1,y+1,1/16);}
+  return out;
+}
+const pause=()=>new Promise(r=>setTimeout(r,20));
+$("go").addEventListener("click",async()=>{
+  if(bilder.length<2)return;$("go").disabled=true;$("dl").disabled=true;const t0=Date.now();
+  try{
+    const {w:W,h:H}=ziel();const dauer=Math.max(0.5,Math.min(10,+String($("dauer").value).replace(",",".")||2.5))*1000;
+    const fade=$("fade").checked,dither=$("dither").checked;
+    const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d",{willReadFrequently:true});
+    const roh=[];for(const b of bilder){zeichne(g,b,W,H);roh.push(g.getImageData(0,0,W,H).data.slice());}
+    // Bildfolge: jedes Bild lang, bei Überblendung dazwischen 4 kurze Mischbilder
+    const folge=[];const FS=4,FD=90;
+    roh.forEach((d,i)=>{folge.push({d,delay:fade?Math.max(300,dauer-FS*FD):dauer});
+      if(fade){const nx=roh[(i+1)%roh.length];for(let s=1;s<=FS;s++){const t=s/(FS+1),m=new Uint8ClampedArray(d.length);for(let q=0;q<d.length;q++)m[q]=d[q]*(1-t)+nx[q]*t;folge.push({d:m,delay:FD});}}});
+    const gif=gifenc.GIFEncoder();
+    for(let i=0;i<folge.length;i++){status("Rechne Bild "+(i+1)+" von "+folge.length+" …");await pause();
+      const f=folge[i];const pal=gifenc.quantize(f.d,256,{format:"rgb565"});const idx=indexiere(f.d,W,H,pal,dither);
+      gif.writeFrame(idx,W,H,{palette:pal,delay:f.delay,repeat:0});}
+    gif.finish();blob=new Blob([gif.bytes()],{type:"image/gif"});
+    if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=URL.createObjectURL(blob);
+    $("vorschau").src=blobUrl;$("out").style.display="block";$("dl").disabled=false;
+    const mb=blob.size/1048576;const gr=mb<1?"gut":mb<2?"in Ordnung":"groß – lädt am Handy langsam; weniger Bilder, ohne Überblendung oder ohne „Feine Farbverläufe“ probieren";
+    $("meta").textContent=`${W} × ${H} px · ${bilder.length} Bilder · ${(dauer/1000).toString().replace(".",",")} s pro Bild · ${mb.toFixed(2).replace(".",",")} MB (${gr}) · ${Math.round((Date.now()-t0)/100)/10} s Rechenzeit. In Mailchimp mit Maßstab ca. 50–55 % anzeigen.`;
+    status("Fertig. Vorschau unten prüfen, dann herunterladen.");
+  }catch(e){status("Fehler: "+e.message);}
+  $("go").disabled=bilder.length<2;
+});
+$("dl").addEventListener("click",()=>{if(!blob)return;const a=document.createElement("a");const n=($("name").value.trim()||"ganzgraz-gif").replace(/[^A-Za-z0-9äöüÄÖÜß_-]+/g,"-");a.href=blobUrl;a.download=n+".gif";document.body.appendChild(a);a.click();a.remove();});
+</script>
+</body>
+</html>
